@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
   Users, Briefcase, UserCheck, Play, ArrowRight, ShieldCheck, 
-  ExternalLink, Check, X, Calendar, ClipboardCheck, Award, FileText, Info
+  ExternalLink, Check, X, Calendar, ClipboardCheck, Award, FileText, Info, HelpCircle
 } from 'lucide-react';
 
 const FOUNDER_ID = '8bbb8137-73b7-4e07-b154-6d0b8034532f';
@@ -54,6 +54,13 @@ export default function HiringPage() {
   // Selected candidate profile slide-over panel
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [profileTab, setProfileTab] = useState<'ai' | 'skills'>('ai');
+
+  // Expanded generated asset state for Generated Hiring Assets section
+  const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
+
+  // Screening questions map: assetCardId -> questions list
+  const [screeningQuestions, setScreeningQuestions] = useState<Record<string, string[]>>({});
+  const [loadingQuestions, setLoadingQuestions] = useState<Record<string, boolean>>({});
 
   const fetchHiringActions = async () => {
     const { data, error } = await supabase
@@ -169,8 +176,44 @@ export default function HiringPage() {
     }
   };
 
+  const handleGenerateQuestions = async (assetId: string, jobDescription: string) => {
+    if (loadingQuestions[assetId]) return;
+    setLoadingQuestions((prev) => ({ ...prev, [assetId]: true }));
+    try {
+      const res = await fetch('http://localhost:11434/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'qwen3:8b',
+          prompt: `Based on this job description draft:\n"${jobDescription}"\nGenerate exactly 5 relevant interview screening questions. Return as a raw JSON string array: e.g. ["Q1?", "Q2?"]. Do not add any conversational replies or explanation.`,
+          stream: false,
+          options: { temperature: 0.2 },
+          think: false
+        })
+      });
+      if (res.ok) {
+        const rawText = (await res.json()).response;
+        const cleanedText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const parsed = JSON.parse(cleanedText);
+        if (Array.isArray(parsed)) {
+          setScreeningQuestions((prev) => ({ ...prev, [assetId]: parsed }));
+        }
+      }
+    } catch (err) {
+      console.error("Failed to generate screening questions:", err);
+    } finally {
+      setLoadingQuestions((prev) => ({ ...prev, [assetId]: false }));
+    }
+  };
+
   const getInitials = (fullName: string) => {
     return fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  };
+
+  const statusBadgeClasses: Record<string, string> = {
+    pending: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+    approved: 'bg-green-500/10 text-green-400 border border-green-500/20',
+    rejected: 'bg-red-500/10 text-red-400 border border-red-500/20',
   };
 
   return (
@@ -205,7 +248,7 @@ export default function HiringPage() {
             </button>
           </form>
 
-          {/* Quick templates (auto-triggers action on click) */}
+          {/* Quick templates */}
           <div className="flex flex-wrap gap-2 mt-4">
             <button
               onClick={() => handleQuery('Hire a Senior React Developer for our SaaS startup')}
@@ -239,6 +282,36 @@ export default function HiringPage() {
             <div className="text-center space-y-2">
               <p className="text-sm font-medium text-neutral-300">Searching platforms & matching resumes...</p>
               <p className="text-xs text-neutral-500">Classification routed to Hiring Agent</p>
+            </div>
+          </div>
+        )}
+
+        {/* Recent generation match response box */}
+        {actions.length > 0 && actions[0].status === 'pending' && (
+          <div className="rounded-xl border border-neutral-800 bg-neutral-900/25 p-6 space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                Latest Draft response
+              </span>
+              <span className="text-xs text-neutral-500">{new Date(actions[0].createdAt).toLocaleDateString()}</span>
+            </div>
+            <p className="text-xs italic text-neutral-500">Prompt: "{actions[0].inputMessage}"</p>
+            <div className="whitespace-pre-line text-sm leading-relaxed text-neutral-300 bg-neutral-950/45 p-4 rounded-xl border border-neutral-900 font-mono">
+              {actions[0].draft}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleUpdateStatus(actions[0].id, 'approved')}
+                className="rounded-lg bg-neutral-100 px-3.5 py-1.5 text-xs font-semibold text-neutral-950 hover:bg-neutral-200 transition"
+              >
+                Approve JD
+              </button>
+              <button
+                onClick={() => handleUpdateStatus(actions[0].id, 'rejected')}
+                className="rounded-lg border border-neutral-800 bg-transparent px-3.5 py-1.5 text-xs font-semibold text-neutral-400 hover:bg-neutral-900 transition"
+              >
+                Reject
+              </button>
             </div>
           </div>
         )}
@@ -407,25 +480,25 @@ export default function HiringPage() {
           </section>
         )}
 
-        {/* ── Active Jobs Section (Derived from real agent actions) ── */}
+        {/* ── Active Jobs Section (Real openings) ── */}
         <section>
           <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-500 mb-4">
             💼 Current Openings
           </h2>
           <div className="grid gap-4 sm:grid-cols-3">
-            {actions.slice(0, 3).map((job) => {
+            {actions.map((job) => {
               const parsedTitle = job.draft.split('\n')[0].replace(/^#+\s*/, '') || 'Hiring Request';
               return (
                 <div key={job.id} className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5 space-y-4">
                   <div>
                     <div className="flex items-center justify-between">
-                      <span className="rounded bg-blue-500/10 px-2 py-0.5 text-[9px] font-bold text-blue-400 border border-blue-500/20">
-                        Active Opening
+                      <span className={`rounded px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${statusBadgeClasses[job.status] || 'bg-neutral-800 text-neutral-400'}`}>
+                        {job.status}
                       </span>
                       <span className="text-[10px] text-neutral-500">{new Date(job.createdAt).toLocaleDateString()}</span>
                     </div>
                     <h3 className="text-sm font-bold text-neutral-250 mt-2 truncate">{parsedTitle}</h3>
-                    <p className="text-[10px] text-neutral-500 mt-1">Status: {job.status}</p>
+                    <p className="text-[10px] text-neutral-500 mt-1">1 JD draft generated</p>
                   </div>
                 </div>
               );
@@ -438,6 +511,91 @@ export default function HiringPage() {
           </div>
         </section>
 
+        {/* ── Generated Hiring Assets (Clickable detail list) ── */}
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-500">
+            📋 Generated Hiring Assets
+          </h2>
+          {actions.length === 0 ? (
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-6 text-center text-sm text-neutral-500">
+              No generated assets found. Ask the agent above.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {actions.map((asset) => {
+                const isExpanded = expandedAssetId === asset.id;
+                const parsedTitle = asset.draft.split('\n')[0].replace(/^#+\s*/, '') || 'Job Specification';
+                return (
+                  <div key={asset.id} className="rounded-xl border border-neutral-800 bg-neutral-900/10 hover:border-neutral-750 transition overflow-hidden">
+                    <div 
+                      onClick={() => setExpandedAssetId(isExpanded ? null : asset.id)}
+                      className="p-5 flex items-center justify-between cursor-pointer"
+                    >
+                      <div>
+                        <h4 className="text-sm font-bold text-neutral-200">{parsedTitle}</h4>
+                        <p className="text-xs text-neutral-500 mt-1">Prompt: "{asset.inputMessage}"</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${statusBadgeClasses[asset.status]}`}>
+                          {asset.status}
+                        </span>
+                        <span className="text-xs text-neutral-500">{new Date(asset.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="px-5 pb-5 pt-2 border-t border-neutral-850 space-y-4 animate-in fade-in duration-200">
+                        <div className="whitespace-pre-line text-sm leading-relaxed text-neutral-350 bg-neutral-950/45 p-4 rounded-xl border border-neutral-900 font-mono">
+                          {asset.draft}
+                        </div>
+
+                        {/* Interactive questions generation */}
+                        <div className="space-y-3 pt-2">
+                          <button
+                            onClick={() => handleGenerateQuestions(asset.id, asset.draft)}
+                            disabled={loadingQuestions[asset.id]}
+                            className="flex items-center gap-1.5 rounded-lg border border-neutral-850 bg-neutral-900/50 hover:bg-neutral-800 px-3.5 py-1.5 text-xs text-neutral-350 transition disabled:opacity-50"
+                          >
+                            <HelpCircle className="h-4 w-4" />
+                            {loadingQuestions[asset.id] ? 'Generating questions...' : 'Generate Screening Questions'}
+                          </button>
+
+                          {screeningQuestions[asset.id] && (
+                            <div className="rounded-xl border border-neutral-800 bg-neutral-950/20 p-4 space-y-2">
+                              <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Suggested Screening Questions</div>
+                              <ol className="list-decimal pl-4.5 space-y-1.5 text-xs text-neutral-350 leading-relaxed">
+                                {screeningQuestions[asset.id].map((q, idx) => (
+                                  <li key={idx}>{q}</li>
+                                ))}
+                              </ol>
+                            </div>
+                          )}
+                        </div>
+
+                        {asset.status === 'pending' && (
+                          <div className="flex gap-2 pt-2 border-t border-neutral-850">
+                            <button
+                              onClick={() => handleUpdateStatus(asset.id, 'approved')}
+                              className="rounded bg-neutral-100 px-3.5 py-1.5 text-xs font-bold text-neutral-950 hover:bg-neutral-200 transition"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleUpdateStatus(asset.id, 'rejected')}
+                              className="rounded border border-neutral-800 bg-transparent px-3.5 py-1.5 text-xs font-medium text-neutral-400 hover:bg-neutral-900 transition"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
       </div>
 
       {/* ── Slide-Over Candidate Profile Drawer ── */}
