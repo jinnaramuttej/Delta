@@ -159,7 +159,7 @@ export default function Dashboard() {
         ) : (
           <div className="space-y-8">
             {/* Real Stats Activity Cards Grid with Graphs */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-3">
               {/* Hiring Card */}
               <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5 flex flex-col justify-between">
                 <div>
@@ -226,22 +226,6 @@ export default function Dashboard() {
                       </Link>
                     </div>
                   )}
-                </div>
-              </div>
-
-              {/* GTM Card */}
-              <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5 flex flex-col justify-between">
-                <div>
-                  <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">GTM Campaigns</p>
-                  <p className="mt-2 text-2xl font-bold text-neutral-100">{stats.gtm.drafted} Assets</p>
-                  <p className="mt-1 text-xs text-neutral-500">{stats.gtm.approved} published</p>
-                </div>
-                {/* Visual Pipeline Bar Chart (GTM Stats) */}
-                <div className="mt-4 flex gap-1 items-end h-6">
-                  <div className="w-full bg-purple-500/10 rounded-t h-1/5" />
-                  <div className="w-full bg-purple-500/20 rounded-t h-2/5" />
-                  <div className="w-full bg-purple-500/40 rounded-t h-[75%]" />
-                  <div className="w-full bg-purple-500 rounded-t h-[95%]" />
                 </div>
               </div>
             </div>
