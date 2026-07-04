@@ -291,7 +291,7 @@ export default function OniPage() {
                             </span>
                           </div>
                           <div className="grid gap-2">
-                            {msg.candidatesList.map((cand, idx) => (
+                            {msg.candidatesList.filter(c => typeof c?.name === 'string' && c.name.trim().length > 0).map((cand, idx) => (
                               <div
                                 key={idx}
                                 onClick={() => setSelectedCandidate(cand)}
@@ -299,7 +299,7 @@ export default function OniPage() {
                               >
                                 <div className="flex items-center gap-3">
                                   <div className="h-8 w-8 rounded bg-neutral-850 flex items-center justify-center text-xs font-bold text-neutral-400">
-                                    {cand.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}
+                                    {(cand.name ?? '?').split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase()}
                                   </div>
                                   <div>
                                     <h4 className="text-xs font-semibold text-neutral-200">{cand.name}</h4>
