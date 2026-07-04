@@ -37,6 +37,7 @@ export default function OniPage() {
   const [founderName, setFounderName] = useState('');
   const [greeting, setGreeting] = useState('Hello');
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [profileTab, setProfileTab] = useState<'ai' | 'skills'>('ai');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const badgeClasses: Record<string, string> = {
