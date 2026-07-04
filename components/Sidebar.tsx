@@ -37,7 +37,6 @@ export default function Sidebar() {
     { label: 'Hiring', href: '/hiring', icon: Users },
     { label: 'Finance', href: '/finance', icon: DollarSign },
     { label: 'Legal', href: '/legal', icon: Scale },
-    { label: 'GTM', href: '/gtm', icon: Megaphone },
   ];
 
   const getInitials = (name?: string) => {
