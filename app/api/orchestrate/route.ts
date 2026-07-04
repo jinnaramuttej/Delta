@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
     console.log('[orchestrate] Classifying message:', message);
 
     const rawClassification = await callOllama(CLASSIFIER_SYSTEM_PROMPT, message, 150);
+    console.log('[orchestrate] Raw Ollama classifier output:', JSON.stringify(rawClassification));
 
     let classification: ClassifierResult;
     try {

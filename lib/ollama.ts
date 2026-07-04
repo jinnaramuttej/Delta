@@ -28,5 +28,6 @@ export async function callOllama(
   }
 
   const data = await response.json();
+  console.log('[ollama] Raw response:', JSON.stringify(data));
   return data.message.content as string;
 }
