@@ -104,10 +104,10 @@ export default function ChatOverlay() {
         <MessageSquare className="h-6 w-6" />
       </button>
 
-      {/* Slide-in panel - full overlay */}
+      {/* Slide-in panel - side drawer */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/85 backdrop-blur-md transition-opacity duration-300">
-          <div className="relative flex h-full w-full flex-col bg-neutral-950 p-10 shadow-2xl animate-in fade-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm transition-opacity duration-300">
+          <div className="relative flex h-full w-96 flex-col border-l border-neutral-800 bg-neutral-950 p-6 shadow-2xl animate-in slide-in-from-right duration-300">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-neutral-800 pb-4 mb-4">
               <div>
