@@ -7,7 +7,8 @@ const CLASSIFIER_SYSTEM_PROMPT =
   'Classify the founder\'s message into exactly one of: finance, hiring, legal, gtm. ' +
   'Also extract any relevant details (tech stack, role, amount, topic) as a short string. ' +
   'Return ONLY valid JSON in this exact shape: {"agent": "finance|hiring|legal|gtm", "extractedContext": "short string"}. ' +
-  'No explanation, no markdown, no extra text.';
+  'No explanation, no markdown, no extra text. ' +
+  'Even for greetings or unclear messages, you MUST pick the closest matching agent — never return an empty string for agent. Default to \'gtm\' if truly unclear.';
 
 type ClassifierResult = {
   agent: 'finance' | 'hiring' | 'legal' | 'gtm';
@@ -47,6 +48,13 @@ export async function POST(req: NextRequest) {
     } catch {
       console.warn('[orchestrate] JSON parse failed, defaulting to gtm. Raw:', rawClassification);
       classification = { agent: 'gtm', extractedContext: message };
+    }
+
+    // Fallback: If agent is empty, undefined, or invalid, default to 'gtm'
+    const validAgents = ['finance', 'hiring', 'legal', 'gtm'];
+    if (!classification.agent || !validAgents.includes(classification.agent)) {
+      console.warn(`[orchestrate] Invalid classification agent "${classification.agent}", defaulting to "gtm"`);
+      classification.agent = 'gtm';
     }
 
     console.log('[orchestrate] Classification result:', classification);
