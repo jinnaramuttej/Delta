@@ -104,10 +104,9 @@ export default function ChatOverlay() {
         <MessageSquare className="h-6 w-6" />
       </button>
 
-      {/* Slide-in panel - side drawer */}
+      {/* Floating Card Chatbox - no full screen backdrop */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm transition-opacity duration-300">
-          <div className="relative flex h-full w-96 flex-col border-l border-neutral-800 bg-neutral-950 p-6 shadow-2xl animate-in slide-in-from-right duration-300">
+        <div className="fixed bottom-24 right-6 z-50 flex h-[500px] w-80 flex-col rounded-xl border border-neutral-800 bg-neutral-950 p-4 shadow-2xl animate-in slide-in-from-bottom-5 duration-200">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-neutral-800 pb-4 mb-4">
               <div>
@@ -193,25 +192,24 @@ export default function ChatOverlay() {
             </div>
 
             {/* Input Footer */}
-            <form onSubmit={handleSubmit} className="absolute bottom-6 left-6 right-6 flex gap-2">
-              <input
-                type="text"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Ask router to delegate action..."
-                disabled={loading}
-                className="flex-1 rounded-xl border border-neutral-800 bg-neutral-900/50 px-4 py-2.5 text-xs text-neutral-100 placeholder-neutral-500 focus:border-neutral-700 focus:outline-none disabled:opacity-50"
-              />
-              <button
-                type="submit"
-                disabled={!message.trim() || loading}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-neutral-100 text-neutral-950 transition hover:bg-neutral-200 disabled:bg-neutral-900 disabled:text-neutral-600"
-              >
-                <Send className="h-4 w-4" />
-              </button>
-            </form>
+             <form onSubmit={handleSubmit} className="mt-4 flex gap-2 pt-2 border-t border-neutral-800">
+               <input
+                 type="text"
+                 value={message}
+                 onChange={(e) => setMessage(e.target.value)}
+                 placeholder="Ask router to delegate action..."
+                 disabled={loading}
+                 className="flex-1 rounded-xl border border-neutral-800 bg-neutral-900/50 px-4 py-2.5 text-xs text-neutral-100 placeholder-neutral-500 focus:border-neutral-700 focus:outline-none disabled:opacity-50"
+               />
+               <button
+                 type="submit"
+                 disabled={!message.trim() || loading}
+                 className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-950 transition hover:bg-neutral-200 disabled:bg-neutral-900 disabled:text-neutral-600"
+               >
+                 <Send className="h-4 w-4" />
+               </button>
+             </form>
           </div>
-        </div>
       )}
     </>
   );
