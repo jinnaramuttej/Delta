@@ -2,6 +2,7 @@
 // Run with: node scripts/seed-founders.mjs
 
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 
 const SUPABASE_URL = 'https://cguwyrdixbkzofnlujpw.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_dNwwx5H3_5qrh4d-7k7_aA_hjQ--JDk';
@@ -10,6 +11,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const founders = [
   {
+    id: crypto.randomUUID(),
     name: 'Arjun Mehta',
     startup_name: 'StackFlow',
     industry: 'SaaS',
@@ -17,6 +19,7 @@ const founders = [
     stage: 'MVP',
   },
   {
+    id: crypto.randomUUID(),
     name: 'Priya Nair',
     startup_name: 'HireLoop',
     industry: 'HR Tech',
@@ -24,6 +27,7 @@ const founders = [
     stage: 'Pre-seed',
   },
   {
+    id: crypto.randomUUID(),
     name: 'Daniel Wu',
     startup_name: 'TraceAI',
     industry: 'AI / ML',
@@ -31,6 +35,7 @@ const founders = [
     stage: 'Seed',
   },
   {
+    id: crypto.randomUUID(),
     name: 'Sofia Reyes',
     startup_name: 'LegalMate',
     industry: 'LegalTech',
@@ -38,6 +43,7 @@ const founders = [
     stage: 'MVP',
   },
   {
+    id: crypto.randomUUID(),
     name: 'Marcus Osei',
     startup_name: 'FinPulse',
     industry: 'FinTech',
@@ -45,6 +51,7 @@ const founders = [
     stage: 'Pre-seed',
   },
   {
+    id: crypto.randomUUID(),
     name: 'Ananya Iyer',
     startup_name: 'GrowthDeck',
     industry: 'Marketing SaaS',
@@ -52,6 +59,7 @@ const founders = [
     stage: 'Seed',
   },
   {
+    id: crypto.randomUUID(),
     name: 'Lena Kovacs',
     startup_name: 'ShipFast',
     industry: 'DevTools',
@@ -59,6 +67,7 @@ const founders = [
     stage: 'Series A',
   },
   {
+    id: crypto.randomUUID(),
     name: 'Rohan Das',
     startup_name: 'EduSpark',
     industry: 'EdTech',
@@ -66,6 +75,7 @@ const founders = [
     stage: 'MVP',
   },
   {
+    id: crypto.randomUUID(),
     name: 'Claire Fontaine',
     startup_name: 'HealthBridge',
     industry: 'HealthTech',
@@ -73,6 +83,7 @@ const founders = [
     stage: 'Seed',
   },
   {
+    id: crypto.randomUUID(),
     name: 'Tomás Vargas',
     startup_name: 'LogiTrack',
     industry: 'Logistics',
