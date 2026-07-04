@@ -65,7 +65,7 @@ const CANDIDATES = [
     phone: "+91 87654 32109",
     skills: ["Python", "TensorFlow", "PyTorch", "FastAPI", "AWS", "Kubernetes", "LLMs", "RAG", "LangChain"],
     missingSkills: ["React"],
-    bonusSkills: ["Research Publications", MLOps: "MLOps"],
+    bonusSkills: ["Research Publications", "MLOps"],
     communicationScore: 88,
     technicalScore: 97,
     leadershipScore: 82,
