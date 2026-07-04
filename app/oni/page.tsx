@@ -219,15 +219,15 @@ export default function OniPage() {
       ) : (
         // Empty State: Centered Greeting and Input layout
         <div className="flex-1 flex flex-col items-center justify-center p-8 animate-in fade-in duration-300">
-          <div className="max-w-xl w-full text-center space-y-6 mb-24">
-            <h1 className="text-4xl font-extrabold tracking-tight text-neutral-50">
+          <div className="max-w-3xl w-full text-center space-y-8 mb-24">
+            <h1 className="text-4xl font-extrabold tracking-tight text-neutral-50 mb-4">
               {greeting}, <span className="font-light text-neutral-400">{founderName || 'Founder'}</span>
             </h1>
             
-            {/* Input Row */}
-            <form onSubmit={handleSubmit} className="flex items-center gap-3 bg-neutral-900 border border-neutral-800 rounded-2xl p-4.5 shadow-2xl focus-within:border-neutral-700 transition">
-              <button type="button" className="text-neutral-500 hover:text-neutral-350 transition">
-                <Paperclip className="h-5 w-5" />
+            {/* Input Row - wider with wider layout spacing */}
+            <form onSubmit={handleSubmit} className="flex items-center gap-4 bg-neutral-900 border border-neutral-800 rounded-2xl p-4 shadow-2xl focus-within:border-neutral-700 transition w-full">
+              <button type="button" className="text-neutral-500 hover:text-neutral-350 transition shrink-0">
+                <Paperclip className="h-4 w-4" />
               </button>
               <input
                 type="text"
@@ -236,42 +236,42 @@ export default function OniPage() {
                 placeholder="How can I help you today?"
                 className="flex-1 bg-transparent text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none"
               />
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4 shrink-0">
                 <button type="button" className="text-neutral-500 hover:text-neutral-300 transition">
-                  <Sparkles className="h-5 w-5" />
+                  <Sparkles className="h-4 w-4" />
                 </button>
                 <button type="button" className="text-neutral-500 hover:text-neutral-300 transition">
-                  <Mic className="h-5 w-5" />
+                  <Mic className="h-4 w-4" />
                 </button>
                 <button
                   type="submit"
                   disabled={!input.trim()}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-neutral-700 text-neutral-100 hover:bg-neutral-600 transition disabled:opacity-40"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-neutral-700 text-neutral-150 hover:bg-neutral-600 transition disabled:opacity-40"
                 >
-                  <ArrowUp className="h-4.5 w-4.5" />
+                  <ArrowUp className="h-4 w-4" />
                 </button>
               </div>
             </form>
 
             {/* Templates Quick pills section */}
-            <div className="space-y-2.5">
+            <div className="space-y-3 pt-2">
               <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">Templates</div>
-              <div className="flex flex-wrap gap-2 justify-center">
+              <div className="flex flex-wrap gap-2.5 justify-center">
                 <button
                   onClick={() => handleQuery('Check my runway & active snapshots')}
-                  className="rounded-full border border-neutral-800 bg-neutral-900/50 px-4 py-1.5 text-xs text-neutral-400 hover:border-neutral-700 hover:text-neutral-200"
+                  className="rounded-full border border-neutral-800 bg-neutral-900/50 px-4.5 py-2 text-xs text-neutral-400 hover:border-neutral-750 hover:text-neutral-200 transition"
                 >
                   Check my runway
                 </button>
                 <button
                   onClick={() => handleQuery('Draft an NDA for hiring developer')}
-                  className="rounded-full border border-neutral-800 bg-neutral-900/50 px-4 py-1.5 text-xs text-neutral-400 hover:border-neutral-700 hover:text-neutral-200"
+                  className="rounded-full border border-neutral-800 bg-neutral-900/50 px-4.5 py-2 text-xs text-neutral-400 hover:border-neutral-750 hover:text-neutral-200 transition"
                 >
                   Draft an NDA
                 </button>
                 <button
                   onClick={() => handleQuery('Write a GTM launch post for LinkedIn')}
-                  className="rounded-full border border-neutral-800 bg-neutral-900/50 px-4 py-1.5 text-xs text-neutral-400 hover:border-neutral-700 hover:text-neutral-200"
+                  className="rounded-full border border-neutral-800 bg-neutral-900/50 px-4.5 py-2 text-xs text-neutral-400 hover:border-neutral-750 hover:text-neutral-200 transition"
                 >
                   Write a launch post
                 </button>
@@ -283,13 +283,13 @@ export default function OniPage() {
 
       {/* Sticky Bottom bar input - displayed only once chat has started */}
       {hasStarted && (
-        <div className="absolute bottom-6 left-0 right-0 z-20 w-full max-w-3xl mx-auto px-8 transition-all duration-300 ease-out">
-          <form onSubmit={handleSubmit} className="flex items-center gap-3 bg-neutral-900 border border-neutral-800 rounded-2xl p-4.5 shadow-2xl backdrop-blur-md">
-            <button type="button" className="text-neutral-500 hover:text-neutral-305 transition">
-              <Paperclip className="h-5 w-5" />
+        <div className="absolute bottom-6 left-0 right-0 z-20 w-full max-w-4xl mx-auto px-8 transition-all duration-300 ease-out">
+          <form onSubmit={handleSubmit} className="flex items-center gap-4 bg-neutral-900 border border-neutral-800 rounded-2xl p-4 shadow-2xl backdrop-blur-md">
+            <button type="button" className="text-neutral-500 hover:text-neutral-305 transition shrink-0">
+              <Paperclip className="h-4 w-4" />
             </button>
-            <button type="button" className="text-neutral-500 hover:text-neutral-305 transition">
-              <ImageIcon className="h-5 w-5" />
+            <button type="button" className="text-neutral-500 hover:text-neutral-305 transition shrink-0">
+              <ImageIcon className="h-4 w-4" />
             </button>
             <input
               type="text"
@@ -297,21 +297,21 @@ export default function OniPage() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Write a message..."
               disabled={loading}
-              className="flex-1 bg-transparent text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none disabled:opacity-50"
+              className="flex-1 bg-transparent text-sm text-neutral-105 placeholder-neutral-500 focus:outline-none disabled:opacity-50"
             />
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4 shrink-0">
               <button type="button" className="text-neutral-500 hover:text-neutral-305 transition">
-                <Mic className="h-5 w-5" />
+                <Mic className="h-4 w-4" />
               </button>
               <button type="button" className="text-neutral-500 hover:text-neutral-305 transition">
-                <Sparkles className="h-5 w-5" />
+                <Sparkles className="h-4 w-4" />
               </button>
               <button
                 type="submit"
                 disabled={!input.trim() || loading}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-neutral-700 text-neutral-100 hover:bg-neutral-600 transition disabled:opacity-40"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-neutral-700 text-neutral-150 hover:bg-neutral-600 transition disabled:opacity-40"
               >
-                <ArrowUp className="h-4.5 w-4.5" />
+                <ArrowUp className="h-4 w-4" />
               </button>
             </div>
           </form>
