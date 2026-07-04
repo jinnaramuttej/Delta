@@ -69,7 +69,7 @@ export default function FinancePage() {
       .from('finance_snapshots')
       .select('id, cash_in_bank, monthly_burn, runway_months, created_at')
       .eq('founder_id', FOUNDER_ID)
-      .order('created_at', { ascending: false });
+      .order('id', { ascending: false });
 
     if (!snapErr && snapshots) {
       setDbSnapshots(snapshots as any);
