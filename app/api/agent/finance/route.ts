@@ -30,18 +30,49 @@ export async function POST(req: NextRequest) {
     const stage    = founderProfile?.stage    ?? 'not specified';
     const industry = founderProfile?.industry ?? 'not specified';
 
+    // ── Fetch latest real finance snapshot from Supabase ──────────────────────
+    const { data: snapshots } = await supabase
+      .from('finance_snapshots')
+      .select('cash_balance, monthly_burn, arr, mrr, notes, created_at')
+      .eq('founder_id', founderId)
+      .order('id', { ascending: false })
+      .limit(1);
+
+    const latestSnap = snapshots?.[0] ?? null;
+
+    let snapshotContext = 'No finance snapshots have been logged yet by the founder.';
+    if (latestSnap) {
+      const runway =
+        latestSnap.monthly_burn && latestSnap.monthly_burn > 0
+          ? (latestSnap.cash_balance / latestSnap.monthly_burn).toFixed(1)
+          : null;
+
+      snapshotContext =
+        `Latest logged snapshot: ` +
+        `Cash Balance = $${latestSnap.cash_balance?.toLocaleString() ?? 'N/A'}, ` +
+        `Monthly Burn = $${latestSnap.monthly_burn?.toLocaleString() ?? 'N/A'}, ` +
+        `ARR = $${latestSnap.arr?.toLocaleString() ?? 'N/A'}, ` +
+        `MRR = $${latestSnap.mrr?.toLocaleString() ?? 'N/A'}` +
+        (runway ? `, Computed Runway = ${runway} months` : '') +
+        (latestSnap.notes ? `, Notes: "${latestSnap.notes}"` : '') +
+        `.`;
+    }
+
     const systemPrompt =
       `You are a finance specialist AI for early-stage startup founders. ` +
       `The founder's stage is ${stage}, industry is ${industry}. ` +
-      `Based on the founder's request, provide a clear, realistic financial summary or draft — ` +
-      `burn rate estimate, runway calculation, or budget breakdown — tailored to their stage. ` +
+      `IMPORTANT: Base your entire response on the founder's ACTUAL logged financial data below. ` +
+      `Do NOT invent numbers or use generic examples. If data is missing, say so explicitly. ` +
+      `${snapshotContext} ` +
+      `Based on the founder's request and their real data, provide a clear analysis — ` +
+      `burn rate, runway interpretation, or budget commentary. ` +
       `Keep it under 180 words. Return plain text only, no markdown.`;
 
     const userMessage = extractedContext
       ? `${message}\n\nContext: ${extractedContext}`
       : message;
 
-    console.log('[finance] Calling Ollama with profile context:', { stage, industry });
+    console.log('[finance] Snapshot context injected into prompt:', snapshotContext);
     console.log('[finance] User message:', userMessage);
 
     const draft = await callOllama(systemPrompt, userMessage, 250);
