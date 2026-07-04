@@ -218,6 +218,84 @@ export default function LegalPage() {
           </div>
         )}
 
+        {/* ── Document History Section ── */}
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-500">
+            📋 Document History
+          </h2>
+          {actions.length === 0 ? (
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-6 text-center text-sm text-neutral-500">
+              No legal documents drafted yet. Choose a template or custom prompt above to start.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {actions.map((asset) => {
+                const isExpanded = selectedTemplate === asset.id; // local template select repurpose or custom expandedState
+                const parsedTitle = asset.draft.split('\n')[0].replace(/^#+\s*/, '') || 'Legal Document';
+                
+                const statusColors: Record<string, string> = {
+                  pending: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+                  approved: 'bg-green-500/10 text-green-400 border border-green-500/20',
+                  rejected: 'bg-red-500/10 text-red-400 border border-red-500/20',
+                };
+
+                return (
+                  <div key={asset.id} className="rounded-xl border border-neutral-800 bg-neutral-900/10 hover:border-neutral-750 transition overflow-hidden">
+                    <div 
+                      onClick={() => setSelectedTemplate(selectedTemplate === asset.id ? '' : asset.id)}
+                      className="p-5 flex items-center justify-between cursor-pointer"
+                    >
+                      <div>
+                        <h4 className="text-sm font-bold text-neutral-250">{parsedTitle}</h4>
+                        <p className="text-xs text-neutral-500 mt-1">Prompt: "{asset.inputMessage}"</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${statusColors[asset.status] || 'bg-neutral-800 text-neutral-400'}`}>
+                          {asset.status}
+                        </span>
+                        <span className="text-xs text-neutral-500">
+                          {asset.createdAt ? new Date(asset.createdAt).toLocaleDateString() : '—'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {selectedTemplate === asset.id && (
+                      <div className="px-5 pb-5 pt-2 border-t border-neutral-850 space-y-4 animate-in fade-in duration-200">
+                        {/* Legal Review Disclaimer Badge */}
+                        <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3.5 py-2 text-xs font-semibold text-amber-400 w-fit">
+                          <ShieldAlert className="h-4 w-4 shrink-0" />
+                          Draft — requires lawyer review
+                        </div>
+
+                        <div className="whitespace-pre-line text-sm leading-relaxed text-neutral-350 bg-neutral-950/45 p-4 rounded-xl border border-neutral-900 font-mono">
+                          {asset.draft}
+                        </div>
+
+                        {asset.status === 'pending' && (
+                          <div className="flex gap-2 pt-2 border-t border-neutral-850">
+                            <button
+                              onClick={() => handleUpdateStatus(asset.id, 'approved')}
+                              className="rounded bg-neutral-100 px-3.5 py-1.5 text-xs font-bold text-neutral-950 hover:bg-neutral-200 transition"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleUpdateStatus(asset.id, 'rejected')}
+                              className="rounded border border-neutral-800 bg-transparent px-3.5 py-1.5 text-xs font-medium text-neutral-400 hover:bg-neutral-900 transition"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
       </div>
     </div>
   );
