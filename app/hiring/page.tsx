@@ -111,7 +111,7 @@ export default function HiringPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'qwen3:8b',
+          model: process.env.NEXT_PUBLIC_OLLAMA_MODEL || 'phi3',
           prompt: `/no_think Based on this job description draft:\n"${jobDescription}"\nGenerate exactly 5 relevant interview screening questions. Return as a raw JSON string array: e.g. ["Q1?", "Q2?"]. Do not add any conversational replies or explanation.`,
           stream: false,
           options: { temperature: 0.2, num_predict: 300 },

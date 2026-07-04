@@ -4,7 +4,7 @@ export async function callOllama(
   maxTokens = 300
 ): Promise<string> {
   const ollamaUrl = process.env.OLLAMA_URL ?? 'http://localhost:11434/api/chat';
-  const model = process.env.OLLAMA_MODEL ?? 'qwen3:8b';
+  const model = process.env.OLLAMA_MODEL ?? process.env.NEXT_PUBLIC_OLLAMA_MODEL ?? 'phi3';
 
   const response = await fetch(ollamaUrl, {
     method: 'POST',
