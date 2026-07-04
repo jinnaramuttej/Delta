@@ -98,13 +98,12 @@ export default function OniPage() {
       let candidatesList: Candidate[] = [];
       let actionId = '';
 
-      // Find the created agent action row to get the correct UUID for approval updates
       const { data: recentActions } = await supabase
         .from('agent_actions')
         .select('id')
         .eq('founder_id', FOUNDER_ID)
         .eq('agent_type', data.agentUsed || 'hiring')
-        .order('id', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(1);
 
       if (recentActions && recentActions.length > 0) {
