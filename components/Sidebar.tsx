@@ -57,7 +57,7 @@ export default function Sidebar() {
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100 font-bold text-neutral-950">
           Δ
         </div>
-        <span className="text-lg font-bold tracking-tight text-neutral-50">Founder OS</span>
+        <span className="text-lg font-bold tracking-tight text-neutral-50">Delta</span>
       </div>
 
       {/* Navigation */}
