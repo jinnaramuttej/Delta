@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
 const FOUNDER_ID = '8bbb8137-73b7-4e07-b154-6d0b8034532f';
@@ -11,18 +12,33 @@ type ActionCard = {
   inputMessage: string;
   draft: string;
   requiresApproval: boolean;
-  status: string; // 'pending' | 'approved' | 'rejected'
+  status: string;
   createdAt: string;
 };
+
+type FinanceSnapshot = {
+  monthly_burn: number;
+  cash_in_bank: number;
+  runway_months: number;
+} | null;
 
 export default function Dashboard() {
   const [pending, setPending] = useState<ActionCard[]>([]);
   const [recent, setRecent] = useState<ActionCard[]>([]);
+  const [todayActivity, setTodayActivity] = useState<ActionCard[]>([]);
+  const [financeSnapshot, setFinanceSnapshot] = useState<FinanceSnapshot>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch pending actions & recent actions
+  // Counters for activity cards
+  const [stats, setStats] = useState({
+    hiring: { drafted: 0, approved: 0 },
+    legal: { drafted: 0, approved: 0 },
+    gtm: { drafted: 0, approved: 0 },
+  });
+
   const fetchActions = async () => {
     try {
+      // 1. Fetch Agent Actions
       const { data, error } = await supabase
         .from('agent_actions')
         .select('id, agent_type, input_message, output_draft, requires_approval, status, created_at')
@@ -40,10 +56,47 @@ export default function Dashboard() {
           createdAt: row.created_at,
         }));
 
-        // Filter for Pending Approvals
         setPending(mapped.filter((a) => a.status === 'pending' && a.requiresApproval));
-        // Take top 10 for Recent Activity
         setRecent(mapped.slice(0, 10));
+
+        // Filter activity within last 24h
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        setTodayActivity(mapped.filter((a) => new Date(a.createdAt) >= oneDayAgo));
+
+        // Compute stats for activity cards
+        const nextStats = {
+          hiring: { drafted: 0, approved: 0 },
+          legal: { drafted: 0, approved: 0 },
+          gtm: { drafted: 0, approved: 0 },
+        };
+
+        mapped.forEach((a) => {
+          if (a.agentUsed === 'hiring') {
+            nextStats.hiring.drafted++;
+            if (a.status === 'approved') nextStats.hiring.approved++;
+          } else if (a.agentUsed === 'legal') {
+            nextStats.legal.drafted++;
+            if (a.status === 'approved') nextStats.legal.approved++;
+          } else if (a.agentUsed === 'gtm') {
+            nextStats.gtm.drafted++;
+            if (a.status === 'approved') nextStats.gtm.approved++;
+          }
+        });
+
+        setStats(nextStats);
+      }
+
+      // 2. Fetch Finance Snapshot if available
+      const { data: finData, error: finErr } = await supabase
+        .from('finance_snapshots')
+        .select('monthly_burn, cash_in_bank, runway_months')
+        .eq('founder_id', FOUNDER_ID)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!finErr && finData) {
+        setFinanceSnapshot(finData as FinanceSnapshot);
       }
     } catch (err) {
       console.error('Failed fetching dashboard items:', err);
@@ -64,12 +117,22 @@ export default function Dashboard() {
         .eq('id', id);
 
       if (!error) {
-        // Refresh feed contents
         fetchActions();
       }
     } catch (err: any) {
       alert(`Action update failed: ${err.message}`);
     }
+  };
+
+  // Helper for relative time display
+  const getRelativeTime = (dateStr: string) => {
+    const ms = Date.now() - new Date(dateStr).getTime();
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    if (hours < 1) {
+      const minutes = Math.floor(ms / (1000 * 60));
+      return `${minutes}m ago`;
+    }
+    return `${hours}h ago`;
   };
 
   const badgeClasses: Record<string, string> = {
@@ -81,7 +144,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex-1 flex min-w-0 overflow-hidden bg-neutral-950">
-      {/* Center content: Dashboard Analytics & Recent Activity */}
+      {/* Center content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto p-8 border-r border-neutral-800/80">
         <header className="mb-8">
           <h1 className="text-2xl font-bold tracking-tight text-neutral-50">Dashboard</h1>
@@ -95,65 +158,96 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="space-y-8">
-            {/* Quick Analytics Stats & Simple Mini Graphs */}
-            <div className="grid gap-4 sm:grid-cols-3">
+            {/* Real Stats Activity Cards Grid */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Hiring Card */}
               <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5">
-                <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Hiring Pipeline</p>
-                <div className="flex items-baseline gap-2 mt-2">
-                  <p className="text-2xl font-bold text-neutral-100">4</p>
-                  <p className="text-xs text-neutral-500 font-medium">Active Roles</p>
-                </div>
-                {/* Visual Pipeline Bar chart */}
-                <div className="mt-4 flex gap-1 items-end h-8">
-                  <div className="w-full bg-blue-500/10 rounded-t h-1/3 hover:bg-blue-500/35 transition" />
-                  <div className="w-full bg-blue-500/15 rounded-t h-2/3 hover:bg-blue-500/35 transition" />
-                  <div className="w-full bg-blue-500/20 rounded-t h-1/2 hover:bg-blue-500/35 transition" />
-                  <div className="w-full bg-blue-500 rounded-t h-full hover:bg-blue-500/80 transition" />
+                <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Hiring Activity</p>
+                <p className="mt-2 text-2xl font-bold text-neutral-100">{stats.hiring.drafted} Roles</p>
+                <p className="mt-1 text-xs text-neutral-500">{stats.hiring.approved} approved by you</p>
+              </div>
+
+              {/* Legal Card */}
+              <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5">
+                <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Legal Activity</p>
+                <p className="mt-2 text-2xl font-bold text-neutral-100">{stats.legal.drafted} Drafts</p>
+                <p className="mt-1 text-xs text-neutral-500">{stats.legal.approved} verified & approved</p>
+              </div>
+
+              {/* Finance snapshots card */}
+              <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5 flex flex-col justify-between min-h-[110px]">
+                <div>
+                  <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Burn & Runway</p>
+                  {financeSnapshot ? (
+                    <>
+                      <p className="mt-2 text-2xl font-bold text-neutral-100">
+                        {financeSnapshot.runway_months.toFixed(1)}m runway
+                      </p>
+                      <p className="mt-1 text-xs text-neutral-500">
+                        Burn: ${financeSnapshot.monthly_burn.toLocaleString()}/mo
+                      </p>
+                    </>
+                  ) : (
+                    <div className="mt-2">
+                      <p className="text-xs text-neutral-400">No data yet.</p>
+                      <Link href="/finance" className="mt-1 inline-block text-[11px] text-green-400 hover:underline">
+                        Log your first snapshot →
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
 
+              {/* GTM Card */}
               <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5">
-                <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Monthly Burn</p>
-                <div className="flex items-baseline gap-2 mt-2">
-                  <p className="text-2xl font-bold text-neutral-100">$18,400</p>
-                  <p className="text-xs text-green-400 font-medium">-4.2% MoM</p>
-                </div>
-                {/* SVG Mini Area Graph */}
-                <div className="mt-4 h-8 w-full">
-                  <svg className="w-full h-full" viewBox="0 0 100 10" preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="burnGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#22c55e" stopOpacity="0.4" />
-                        <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M0,10 L0,8 L20,6 L40,9 L60,4 L80,5 L100,2 L100,10 Z" fill="url(#burnGrad)" />
-                    <path d="M0,8 L20,6 L40,9 L60,4 L80,5 L100,2" fill="none" stroke="#22c55e" strokeWidth="0.8" />
-                  </svg>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5">
-                <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Runway Remaining</p>
-                <div className="flex items-baseline gap-2 mt-2">
-                  <p className="text-2xl font-bold text-neutral-100">14.2</p>
-                  <p className="text-xs text-neutral-500 font-medium">Months</p>
-                </div>
-                {/* Runway Progress Meter */}
-                <div className="mt-5 w-full bg-neutral-850 rounded-full h-1.5 overflow-hidden">
-                  <div className="bg-amber-500 h-full rounded-full w-[70%]" />
-                </div>
-                <div className="flex justify-between items-center mt-1.5 text-[9px] text-neutral-500 font-medium">
-                  <span>0m</span>
-                  <span>Critical (6m)</span>
-                  <span>Goal (18m)</span>
-                </div>
+                <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">GTM Campaigns</p>
+                <p className="mt-2 text-2xl font-bold text-neutral-100">{stats.gtm.drafted} Assets</p>
+                <p className="mt-1 text-xs text-neutral-500">{stats.gtm.approved} published copy</p>
               </div>
             </div>
 
+            {/* Today's Activity Section */}
+            <section>
+              <h2 className="text-base font-semibold text-neutral-200 mb-4">Today's Activity</h2>
+              {todayActivity.length === 0 ? (
+                <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5 text-center text-xs text-neutral-500">
+                  No activity recorded in the past 24 hours.
+                </div>
+              ) : (
+                <div className="relative border-l border-neutral-800 ml-3 pl-5 space-y-4 py-2">
+                  {todayActivity.map((act) => (
+                    <div key={act.id} className="relative flex items-center justify-between">
+                      {/* Timeline dot */}
+                      <span className="absolute -left-[26px] flex h-3.5 w-3.5 items-center justify-center rounded-full bg-neutral-950 border border-neutral-850">
+                        <span className="h-1.5 w-1.5 rounded-full bg-neutral-600" />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${
+                              badgeClasses[act.agentUsed]
+                            }`}
+                          >
+                            {act.agentUsed}
+                          </span>
+                          <p className="text-sm font-medium text-neutral-250 truncate">
+                            {act.draft ? act.draft.split('\n')[0].replace(/^#+\s*/, '') : 'Draft'}
+                          </p>
+                        </div>
+                        <p className="text-xs text-neutral-500 mt-0.5 truncate">Prompt: "{act.inputMessage}"</p>
+                      </div>
+                      <span className="text-xs text-neutral-500 shrink-0 ml-4">
+                        {getRelativeTime(act.createdAt)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
             {/* Recent Activity */}
             <section>
-              <h2 className="text-base font-semibold text-neutral-200 mb-4">Recent Activity</h2>
+              <h2 className="text-base font-semibold text-neutral-200 mb-4">Recent Activity (All-Time)</h2>
               {recent.length === 0 ? (
                 <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-6 text-center text-sm text-neutral-500">
                   No recent activity logged.
@@ -213,7 +307,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Right Content Sidebar: Pending Approvals (Smaller/Compact Layout) */}
+      {/* Right Content Sidebar: Pending Approvals */}
       <div className="w-80 shrink-0 flex flex-col bg-neutral-950 p-6 overflow-y-auto">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-400 mb-4 flex items-center gap-2">
           Approvals Required
