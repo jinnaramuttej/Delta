@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Send, Sparkles } from 'lucide-react';
+import { Send, Sparkles, Paperclip, Mic, ArrowUp, ImageIcon } from 'lucide-react';
 
 const FOUNDER_ID = '8bbb8137-73b7-4e07-b154-6d0b8034532f';
 
@@ -20,6 +20,8 @@ export default function OniPage() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [founderName, setFounderName] = useState('');
+  const [greeting, setGreeting] = useState('Hello');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const badgeClasses: Record<string, string> = {
@@ -30,26 +32,45 @@ export default function OniPage() {
   };
 
   useEffect(() => {
+    // 1. Fetch founder profile name
+    async function fetchFounder() {
+      const { data, error } = await supabase
+        .from('founder_profile')
+        .select('name')
+        .eq('id', FOUNDER_ID)
+        .single();
+      if (!error && data) {
+        setFounderName(data.name);
+      }
+    }
+    fetchFounder();
+
+    // 2. Compute greeting based on time of day
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting('Good morning');
+    else if (hour < 18) setGreeting('Good afternoon');
+    else setGreeting('Good evening');
+  }, []);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || loading) return;
+  const handleQuery = async (queryText: string) => {
+    if (!queryText.trim() || loading) return;
 
-    const userText = input.trim();
     setInput('');
     setHasStarted(true);
 
     const userMsgId = Math.random().toString();
-    setMessages((prev) => [...prev, { id: userMsgId, sender: 'user', text: userText }]);
+    setMessages((prev) => [...prev, { id: userMsgId, sender: 'user', text: queryText }]);
     setLoading(true);
 
     try {
       const res = await fetch('/api/orchestrate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ founderId: FOUNDER_ID, message: userText }),
+        body: JSON.stringify({ founderId: FOUNDER_ID, message: queryText }),
       });
 
       if (!res.ok) {
@@ -79,6 +100,11 @@ export default function OniPage() {
     }
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleQuery(input);
+  };
+
   const handleUpdateStatus = async (id: string, nextStatus: 'approved' | 'rejected') => {
     try {
       const { error } = await supabase
@@ -98,70 +124,88 @@ export default function OniPage() {
 
   return (
     <div className="flex-1 flex flex-col bg-neutral-950 text-neutral-100 overflow-hidden relative">
+      
       {/* Messages Scroll Area */}
       {hasStarted ? (
-        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
-          <div className="max-w-3xl mx-auto space-y-6 pb-28">
+        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8">
+          <div className="max-w-3xl mx-auto space-y-8 pb-32">
             {messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`flex w-full ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex w-full flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
               >
                 {msg.sender === 'user' ? (
-                  <div className="bg-neutral-800 text-neutral-150 rounded-xl px-4.5 py-2.5 max-w-lg text-sm leading-relaxed">
+                  <div className="bg-neutral-100 text-neutral-900 rounded-2xl px-5 py-2.5 max-w-lg text-sm font-medium leading-relaxed shadow-sm">
                     {msg.text}
                   </div>
                 ) : (
-                  <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 max-w-2xl w-full space-y-3">
-                    <div className="flex items-center justify-between border-b border-neutral-850 pb-2">
-                      <span className="text-xs font-bold text-neutral-300 flex items-center gap-1.5">
-                        <Sparkles className="h-3.5 w-3.5 text-neutral-400" /> Oni
-                      </span>
-                      {msg.agentUsed && (
-                        <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${badgeClasses[msg.agentUsed]}`}>
-                          {msg.agentUsed}
-                        </span>
-                      )}
+                  <div className="w-full max-w-2xl space-y-2">
+                    {/* Oni avatar & label */}
+                    <div className="flex items-center gap-2">
+                      <div className="h-6 w-6 rounded-full bg-neutral-800 border border-neutral-750 flex items-center justify-center text-[10px] font-bold text-neutral-350">
+                        O
+                      </div>
+                      <span className="text-[10px] font-extrabold tracking-wider text-neutral-400">ONI</span>
                     </div>
-                    
-                    <p className="text-sm text-neutral-305 whitespace-pre-line leading-relaxed">
-                      {msg.text}
-                    </p>
 
-                    {msg.requiresApproval && (
-                      <div className="flex gap-2 pt-2 border-t border-neutral-850">
-                        {msg.status === 'pending' ? (
-                          <>
-                            <button
-                              onClick={() => handleUpdateStatus(msg.id, 'approved')}
-                              className="rounded bg-neutral-100 px-3 py-1 text-xs font-bold text-neutral-950 hover:bg-neutral-200 transition"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => handleUpdateStatus(msg.id, 'rejected')}
-                              className="rounded border border-neutral-850 bg-transparent px-3.5 py-1 text-xs font-medium text-neutral-400 hover:bg-neutral-900 transition"
-                            >
-                              Reject
-                            </button>
-                          </>
-                        ) : msg.status === 'approved' ? (
-                          <span className="text-xs font-semibold text-green-400">✓ Approved</span>
-                        ) : (
-                          <span className="text-xs font-semibold text-red-400">✗ Rejected</span>
+                    {/* Oni Response Bubble */}
+                    <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 space-y-3">
+                      <div className="flex items-center justify-between border-b border-neutral-850 pb-2">
+                        <span className="text-xs font-bold text-neutral-300 flex items-center gap-1.5">
+                          <Sparkles className="h-3.5 w-3.5 text-neutral-400" /> Assistant Response
+                        </span>
+                        {msg.agentUsed && (
+                          <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${badgeClasses[msg.agentUsed]}`}>
+                            {msg.agentUsed}
+                          </span>
                         )}
                       </div>
-                    )}
+                      
+                      <p className="text-sm text-neutral-300 whitespace-pre-line leading-relaxed">
+                        {msg.text}
+                      </p>
+
+                      {msg.requiresApproval && (
+                        <div className="flex gap-2 pt-2 border-t border-neutral-850">
+                          {msg.status === 'pending' ? (
+                            <>
+                              <button
+                                onClick={() => handleUpdateStatus(msg.id, 'approved')}
+                                className="rounded bg-neutral-100 px-3 py-1 text-xs font-bold text-neutral-950 hover:bg-neutral-200 transition"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => handleUpdateStatus(msg.id, 'rejected')}
+                                className="rounded border border-neutral-850 bg-transparent px-3.5 py-1 text-xs font-medium text-neutral-400 hover:bg-neutral-900 transition"
+                              >
+                                Reject
+                              </button>
+                            </>
+                          ) : msg.status === 'approved' ? (
+                            <span className="text-xs font-semibold text-green-400">✓ Approved</span>
+                          ) : (
+                            <span className="text-xs font-semibold text-red-400">✗ Rejected</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
             ))}
 
             {loading && (
-              <div className="flex justify-start">
+              <div className="flex flex-col items-start gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-6 w-6 rounded-full bg-neutral-800 border border-neutral-750 flex items-center justify-center text-[10px] font-bold text-neutral-350">
+                    O
+                  </div>
+                  <span className="text-[10px] font-extrabold tracking-wider text-neutral-400">ONI</span>
+                </div>
                 <div className="bg-neutral-900 border border-neutral-850 rounded-xl px-4 py-3 flex items-center gap-2">
                   <span className="text-xs font-medium text-neutral-400 animate-pulse">Thinking</span>
-                  <span className="flex gap-1">
+                  <span className="flex gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-neutral-500 animate-bounce" style={{ animationDelay: '0ms' }} />
                     <span className="w-1.5 h-1.5 rounded-full bg-neutral-500 animate-bounce" style={{ animationDelay: '150ms' }} />
                     <span className="w-1.5 h-1.5 rounded-full bg-neutral-500 animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -173,41 +217,106 @@ export default function OniPage() {
           </div>
         </div>
       ) : (
-        // Empty State: Centered Content
+        // Empty State: Centered Greeting and Input layout
         <div className="flex-1 flex flex-col items-center justify-center p-8 animate-in fade-in duration-300">
-          <div className="max-w-md w-full text-center space-y-4 mb-6">
-            <h1 className="text-4xl font-extrabold tracking-tight text-neutral-50 flex items-center justify-center gap-2">
-              <Sparkles className="h-8 w-8 text-neutral-400" /> Oni
+          <div className="max-w-xl w-full text-center space-y-6 mb-24">
+            <h1 className="text-4xl font-extrabold tracking-tight text-neutral-50">
+              {greeting}, <span className="font-light text-neutral-400">{founderName || 'Founder'}</span>
             </h1>
-            <p className="text-sm text-neutral-400">
-              Your startup orchestrator agent. Ask me to hire, draft policies, review runway, or generate gtm copies from here.
-            </p>
+            
+            {/* Input Row */}
+            <form onSubmit={handleSubmit} className="flex items-center gap-3 bg-neutral-900 border border-neutral-800 rounded-2xl p-4.5 shadow-2xl focus-within:border-neutral-700 transition">
+              <button type="button" className="text-neutral-500 hover:text-neutral-350 transition">
+                <Paperclip className="h-5 w-5" />
+              </button>
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="How can I help you today?"
+                className="flex-1 bg-transparent text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none"
+              />
+              <div className="flex items-center gap-3">
+                <button type="button" className="text-neutral-500 hover:text-neutral-300 transition">
+                  <Sparkles className="h-5 w-5" />
+                </button>
+                <button type="button" className="text-neutral-500 hover:text-neutral-300 transition">
+                  <Mic className="h-5 w-5" />
+                </button>
+                <button
+                  type="submit"
+                  disabled={!input.trim()}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-neutral-700 text-neutral-100 hover:bg-neutral-600 transition disabled:opacity-40"
+                >
+                  <ArrowUp className="h-4.5 w-4.5" />
+                </button>
+              </div>
+            </form>
+
+            {/* Templates Quick pills section */}
+            <div className="space-y-2.5">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">Templates</div>
+              <div className="flex flex-wrap gap-2 justify-center">
+                <button
+                  onClick={() => handleQuery('Check my runway & active snapshots')}
+                  className="rounded-full border border-neutral-800 bg-neutral-900/50 px-4 py-1.5 text-xs text-neutral-400 hover:border-neutral-700 hover:text-neutral-200"
+                >
+                  Check my runway
+                </button>
+                <button
+                  onClick={() => handleQuery('Draft an NDA for hiring developer')}
+                  className="rounded-full border border-neutral-800 bg-neutral-900/50 px-4 py-1.5 text-xs text-neutral-400 hover:border-neutral-700 hover:text-neutral-200"
+                >
+                  Draft an NDA
+                </button>
+                <button
+                  onClick={() => handleQuery('Write a GTM launch post for LinkedIn')}
+                  className="rounded-full border border-neutral-800 bg-neutral-900/50 px-4 py-1.5 text-xs text-neutral-400 hover:border-neutral-700 hover:text-neutral-200"
+                >
+                  Write a launch post
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Input form - Center on empty, bottom on start */}
-      <div className={`w-full max-w-3xl mx-auto px-8 transition-all duration-300 ease-out ${
-        hasStarted ? 'absolute bottom-6 left-0 right-0 z-20' : 'mb-36'
-      }`}>
-        <form onSubmit={handleSubmit} className="flex gap-2 bg-neutral-900/60 p-2.5 rounded-2xl border border-neutral-800 shadow-2xl backdrop-blur-md">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask Oni to delegate orchestrations..."
-            disabled={loading}
-            className="flex-1 rounded-xl bg-transparent px-4 py-2.5 text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none disabled:opacity-50"
-          />
-          <button
-            type="submit"
-            disabled={!input.trim() || loading}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-950 transition hover:bg-neutral-200 disabled:bg-neutral-850 disabled:text-neutral-600"
-          >
-            <Send className="h-4.5 w-4.5" />
-          </button>
-        </form>
-      </div>
+      {/* Sticky Bottom bar input - displayed only once chat has started */}
+      {hasStarted && (
+        <div className="absolute bottom-6 left-0 right-0 z-20 w-full max-w-3xl mx-auto px-8 transition-all duration-300 ease-out">
+          <form onSubmit={handleSubmit} className="flex items-center gap-3 bg-neutral-900 border border-neutral-800 rounded-2xl p-4.5 shadow-2xl backdrop-blur-md">
+            <button type="button" className="text-neutral-500 hover:text-neutral-305 transition">
+              <Paperclip className="h-5 w-5" />
+            </button>
+            <button type="button" className="text-neutral-500 hover:text-neutral-305 transition">
+              <ImageIcon className="h-5 w-5" />
+            </button>
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Write a message..."
+              disabled={loading}
+              className="flex-1 bg-transparent text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none disabled:opacity-50"
+            />
+            <div className="flex items-center gap-3">
+              <button type="button" className="text-neutral-500 hover:text-neutral-305 transition">
+                <Mic className="h-5 w-5" />
+              </button>
+              <button type="button" className="text-neutral-500 hover:text-neutral-305 transition">
+                <Sparkles className="h-5 w-5" />
+              </button>
+              <button
+                type="submit"
+                disabled={!input.trim() || loading}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-neutral-700 text-neutral-100 hover:bg-neutral-600 transition disabled:opacity-40"
+              >
+                <ArrowUp className="h-4.5 w-4.5" />
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
