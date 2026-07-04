@@ -91,7 +91,7 @@ export default function Dashboard() {
         .from('finance_snapshots')
         .select('monthly_burn, cash_in_bank, runway_months')
         .eq('founder_id', FOUNDER_ID)
-        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(1)
         .maybeSingle();
 
