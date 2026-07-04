@@ -416,34 +416,6 @@ export default function FinancePage() {
           </div>
         </div>
 
-        {/* Generated Action Feed */}
-        {actions.length > 0 && (
-          <section>
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-500 mb-4">
-              Generated Reports & Drafts
-            </h2>
-            <div className="space-y-4">
-              {actions.map((card) => (
-                <div key={card.id} className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-6 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-green-500/10 text-green-400 border border-green-500/20">
-                      Finance
-                    </span>
-                    <span className="text-xs text-neutral-500">{new Date(card.createdAt).toLocaleDateString()}</span>
-                  </div>
-                  <div className="text-xs italic text-neutral-500">Prompt: "{card.inputMessage}"</div>
-                  <h3 className="text-sm font-bold text-neutral-250 leading-snug">
-                    {card.draft ? card.draft.split('\n')[0].replace(/^#+\s*/, '') : 'Draft'}
-                  </h3>
-                  <div className="whitespace-pre-line text-sm leading-relaxed text-neutral-350 bg-neutral-950/40 p-4 rounded-xl border border-neutral-900 font-mono">
-                    {card.draft}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
       </div>
     </div>
   );
