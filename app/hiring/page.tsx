@@ -4,137 +4,22 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
   Users, Briefcase, UserCheck, Play, ArrowRight, ShieldCheck, 
-  ExternalLink, Check, X, Calendar, ClipboardCheck, Award, FileText
+  ExternalLink, Check, X, Calendar, ClipboardCheck, Award, FileText, Info
 } from 'lucide-react';
 
 const FOUNDER_ID = '8bbb8137-73b7-4e07-b154-6d0b8034532f';
 
-// Local Mock Database structured from the original data.js file
-const CANDIDATES = [
-  {
-    id: "c001",
-    name: "Rahul Sharma",
-    role: "Senior Frontend Developer",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150&h=150",
-    matchScore: 96,
-    salary: "₹14–18 LPA",
-    experience: "5 years",
-    currentCompany: "Razorpay",
-    availability: "Immediate",
-    location: "Bangalore",
-    noticePeriod: "0 days",
-    startupExp: true,
-    email: "rahul.sharma@email.com",
-    phone: "+91 98765 43210",
-    skills: ["React", "Next.js", "TypeScript", "Node.js", "MongoDB", "AWS", "Redux", "Tailwind", "Jest", "Docker"],
-    missingSkills: ["GraphQL"],
-    bonusSkills: ["Figma", "Cypress", "Storybook"],
-    communicationScore: 92,
-    technicalScore: 95,
-    leadershipScore: 88,
-    cultureScore: 90,
-    aiConfidence: 96,
-    hiringRisk: "Low",
-    aiSummary: "Rahul is an exceptional frontend engineer with deep React expertise and proven startup experience at Razorpay. His immediate availability, strong communication skills, and track record of shipping at scale make him the top candidate for this role.",
-    strengths: ["Strong React & TypeScript fundamentals", "Led 3-person frontend team at Razorpay", "Active open-source contributor (800+ GitHub stars)", "Excellent problem-solving under pressure"],
-    weaknesses: ["Limited GraphQL experience", "No DevOps background"],
-    resumeSummary: "5+ years building scalable frontend systems for fintech and SaaS products. Built payment dashboard handling ₹500Cr+ transactions at Razorpay.",
-    education: [{ degree: "B.Tech Computer Science", institution: "IIT Bombay", year: "2019", grade: "8.5 CGPA" }],
-    certifications: ["AWS Certified Developer", "Google Cloud Professional"],
-    experienceList: [
-      { role: "Senior Frontend Developer", company: "Razorpay", duration: "Jan 2022 – Present", desc: "Led frontend for payment dashboard. Built component library used across 6 products." },
-      { role: "Frontend Developer", company: "Swiggy", duration: "Jun 2020 – Dec 2021", desc: "Built restaurant portal serving 150K+ restaurants." },
-      { role: "Junior Developer", company: "Infosys", duration: "Aug 2019 – May 2020", desc: "Worked on enterprise React applications." }
-    ],
-    status: "screening"
-  },
-  {
-    id: "c002",
-    name: "Priya Patel",
-    role: "AI/ML Engineer",
-    avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150&h=150",
-    matchScore: 94,
-    salary: "₹20–25 LPA",
-    experience: "4 years",
-    currentCompany: "Google DeepMind",
-    availability: "30 days",
-    location: "Hyderabad",
-    noticePeriod: "30 days",
-    startupExp: false,
-    email: "priya.patel@email.com",
-    phone: "+91 87654 32109",
-    skills: ["Python", "TensorFlow", "PyTorch", "FastAPI", "AWS", "Kubernetes", "LLMs", "RAG", "LangChain"],
-    missingSkills: ["React"],
-    bonusSkills: ["Research Publications", "MLOps"],
-    communicationScore: 88,
-    technicalScore: 97,
-    leadershipScore: 82,
-    cultureScore: 85,
-    aiConfidence: 94,
-    hiringRisk: "Low",
-    aiSummary: "Priya is a world-class ML engineer from Google DeepMind with LLM and RAG expertise directly relevant to your AI product. Her 30-day notice is the only friction — otherwise a near-perfect match.",
-    strengths: ["Deep LLM & RAG expertise", "Published ML research (3 papers)", "Google-scale system design experience"],
-    weaknesses: ["No startup experience", "30-day notice period"],
-    resumeSummary: "ML Engineer at Google DeepMind working on large language models and production AI systems serving millions of users globally.",
-    education: [{ degree: "M.Tech AI & ML", institution: "IIT Delhi", year: "2020", grade: "9.1 CGPA" }],
-    certifications: ["Google Professional ML Engineer", "Deep Learning Specialization"],
-    experienceList: [
-      { role: "ML Engineer", company: "Google DeepMind", duration: "Mar 2022 – Present", desc: "Working on LLM fine-tuning pipelines." },
-      { role: "Data Scientist", company: "Flipkart", duration: "Jul 2020 – Feb 2022", desc: "Built recommendation systems." }
-    ],
-    status: "interview"
-  },
-  {
-    id: "c003",
-    name: "Aman Singh",
-    role: "Full Stack Developer",
-    avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=150&h=150",
-    matchScore: 89,
-    salary: "₹12–16 LPA",
-    experience: "3 years",
-    currentCompany: "Zepto",
-    availability: "15 days",
-    location: "Delhi",
-    noticePeriod: "15 days",
-    startupExp: true,
-    email: "aman.singh@email.com",
-    phone: "+91 76543 21098",
-    skills: ["React", "Node.js", "MongoDB", "Express", "Vue.js", "Python", "PostgreSQL", "Redis"],
-    missingSkills: ["TypeScript", "AWS"],
-    bonusSkills: ["React Native", "GraphQL"],
-    communicationScore: 85,
-    technicalScore: 88,
-    leadershipScore: 75,
-    cultureScore: 92,
-    aiConfidence: 89,
-    hiringRisk: "Low",
-    aiSummary: "Aman is a solid MERN stack developer with hands-on startup experience at Zepto. Strong culture fit and quick availability make him an excellent choice for a growing team.",
-    strengths: ["MERN stack mastery", "Startup-proven execution speed", "Strong culture fit"],
-    weaknesses: ["Limited TypeScript experience", "No AWS certification"],
-    resumeSummary: "Full-stack developer building high-performance grocery delivery systems at Zepto, handling 500K+ daily orders.",
-    education: [{ degree: "B.E. Computer Engineering", institution: "BITS Pilani", year: "2021", grade: "8.0 CGPA" }],
-    certifications: ["MongoDB Developer", "Node.js Certification"],
-    experienceList: [
-      { role: "Full Stack Developer", company: "Zepto", duration: "Aug 2021 – Present", desc: "Building microservices for grocery delivery." }
-    ],
-    status: "offer"
-  }
-];
-
-const JOBS = [
-  { id: "j001", title: "Frontend Developer", stack: ["React", "TypeScript", "Next.js"], dept: "Engineering", applicants: 24, progress: 65, status: "Interview Stage", openSince: "12 days", priority: "High" },
-  { id: "j002", title: "AI Engineer", stack: ["Python", "LLMs", "FastAPI"], dept: "AI", applicants: 41, progress: 40, status: "Technical Round", openSince: "8 days", priority: "Critical" },
-  { id: "j003", title: "UI/UX Designer", stack: ["Figma", "Prototyping"], dept: "Design", applicants: 18, progress: 25, status: "Screening", openSince: "5 days", priority: "Medium" }
-];
-
-const AI_SOURCES = [
-  { name: "LinkedIn", icon: "💼", found: 18 },
-  { name: "GitHub", icon: "💻", found: 9 },
-  { name: "LeetCode", icon: "📊", found: 6 },
-  { name: "HackerRank", icon: "🏆", found: 4 },
-  { name: "Internal ATS", icon: "🗄️", found: 12 },
-  { name: "Resume DB", icon: "📁", found: 23 }
-];
+type Candidate = {
+  name: string;
+  role: string;
+  experience: string;
+  matchScore: number;
+  skills: string[];
+  availability: string;
+  currentCompany: string;
+  aiSummary: string;
+  hiringRisk: string;
+};
 
 type ActionCard = {
   id: string;
@@ -146,21 +31,29 @@ type ActionCard = {
   createdAt: string;
 };
 
+const AI_SOURCES = [
+  { name: "LinkedIn", icon: "💼", found: 18 },
+  { name: "GitHub", icon: "💻", found: 9 },
+  { name: "LeetCode", icon: "📊", found: 6 },
+  { name: "HackerRank", icon: "🏆", found: 4 },
+  { name: "Internal ATS", icon: "🗄️", found: 12 },
+  { name: "Resume DB", icon: "📁", found: 23 }
+];
+
 export default function HiringPage() {
   const [actions, setActions] = useState<ActionCard[]>([]);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Results panel view configurations
+  // Dynamic Candidates generated via Ollama model calls
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [resultsTab, setResultsTab] = useState<'results' | 'rec' | 'compare' | 'sources'>('results');
   
   // Selected candidate profile slide-over panel
-  const [selectedCandidate, setSelectedCandidate] = useState<typeof CANDIDATES[0] | null>(null);
-  const [profileTab, setProfileTab] = useState<'ai' | 'resume' | 'skills' | 'exp'>('ai');
-
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [profileTab, setProfileTab] = useState<'ai' | 'skills'>('ai');
 
   const fetchHiringActions = async () => {
     const { data, error } = await supabase
@@ -188,12 +81,9 @@ export default function HiringPage() {
     fetchHiringActions();
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!message.trim() || loading) return;
+  const handleQuery = async (queryText: string) => {
+    if (!queryText.trim() || loading) return;
 
-    const userMessage = message.trim();
-    setMessage('');
     setLoading(true);
     setError(null);
     setShowResults(false);
@@ -205,13 +95,14 @@ export default function HiringPage() {
         .eq('id', FOUNDER_ID)
         .single();
 
+      // 1. Send the primary agent request
       const res = await fetch('/api/agent/hiring', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           founderId: FOUNDER_ID,
-          message: userMessage,
-          extractedContext: userMessage,
+          message: queryText,
+          extractedContext: queryText,
           founderProfile: profile || {},
         }),
       });
@@ -220,13 +111,45 @@ export default function HiringPage() {
         throw new Error(`Agent request failed: ${res.status}`);
       }
 
+      // 2. Fetch 3 dynamic simulated candidate profiles from Ollama
+      try {
+        const ollamaRes = await fetch('http://localhost:11434/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'qwen3:8b',
+            prompt: `You are a startup HR matches generator. Generate exactly 3 realistic but clearly fictional example candidate profiles for this hiring role: "${queryText}". Return ONLY a raw JSON array matching this typescript shape: Array<{ name: string, role: string, experience: string, matchScore: number, skills: string[], availability: string, currentCompany: string, aiSummary: string, hiringRisk: 'Low' | 'Medium' | 'High' }>. Do not include markdown code block formatting or explanation, just the raw JSON.`,
+            stream: false,
+            options: { temperature: 0.1 },
+            think: false
+          })
+        });
+
+        if (ollamaRes.ok) {
+          const rawText = (await ollamaRes.json()).response;
+          const cleanedText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+          const parsed = JSON.parse(cleanedText);
+          if (Array.isArray(parsed)) {
+            setCandidates(parsed);
+          }
+        }
+      } catch (simErr) {
+        console.error("Failed to generate dynamic simulator matches:", simErr);
+      }
+
       await fetchHiringActions();
-      setShowResults(true); // Reveal results search section after search completed
+      setShowResults(true);
     } catch (err: any) {
       setError(err.message || 'An error occurred.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleQuery(message);
+    setMessage('');
   };
 
   const handleUpdateStatus = async (id: string, nextStatus: 'approved' | 'rejected') => {
@@ -246,6 +169,10 @@ export default function HiringPage() {
     }
   };
 
+  const getInitials = (fullName: string) => {
+    return fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  };
+
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-neutral-950 text-neutral-100 overflow-y-auto pb-24">
       {/* Header */}
@@ -255,7 +182,7 @@ export default function HiringPage() {
       </header>
 
       <div className="p-8 max-w-5xl mx-auto w-full space-y-10">
-        {/* Chat input card (Action trigger center) */}
+        {/* Query Input Card */}
         <section className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-6">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-400 mb-3 flex items-center gap-2">
             <span>✨</span> Query Agent
@@ -272,28 +199,28 @@ export default function HiringPage() {
             <button
               type="submit"
               disabled={!message.trim() || loading}
-              className="rounded-xl bg-neutral-100 px-6 py-3 text-sm font-semibold text-neutral-950 hover:bg-neutral-200 transition disabled:opacity-50"
+              className="rounded-xl bg-neutral-100 px-6 py-3 text-sm font-semibold text-neutral-950 hover:bg-neutral-200 transition disabled:opacity-50 min-w-[90px]"
             >
-              Ask AI
+              {loading ? 'Asking...' : 'Ask AI'}
             </button>
           </form>
 
-          {/* Quick chips templates */}
+          {/* Quick templates (auto-triggers action on click) */}
           <div className="flex flex-wrap gap-2 mt-4">
             <button
-              onClick={() => setMessage('Hire a Senior React Developer for our SaaS startup')}
+              onClick={() => handleQuery('Hire a Senior React Developer for our SaaS startup')}
               className="rounded-full border border-neutral-800 bg-neutral-950 px-3.5 py-1 text-xs text-neutral-400 hover:border-neutral-700 hover:text-neutral-200"
             >
               🚀 Hire React Dev
             </button>
             <button
-              onClick={() => setMessage('Find AI Engineers with LLM experience')}
+              onClick={() => handleQuery('Find AI Engineers with LLM experience')}
               className="rounded-full border border-neutral-800 bg-neutral-950 px-3.5 py-1 text-xs text-neutral-400 hover:border-neutral-700 hover:text-neutral-200"
             >
               🤖 Find AI Engineers
             </button>
             <button
-              onClick={() => setMessage('Generate a job description for a Full Stack Developer')}
+              onClick={() => handleQuery('Generate a job description for a Full Stack Developer')}
               className="rounded-full border border-neutral-800 bg-neutral-950 px-3.5 py-1 text-xs text-neutral-400 hover:border-neutral-700 hover:text-neutral-200"
             >
               📝 Generate JD
@@ -316,39 +243,42 @@ export default function HiringPage() {
           </div>
         )}
 
-        {/* ── CONDITIONAL RENDER: Candidate Matches & Results ── */}
-        {showResults && (
+        {/* ── Simulated Candidate Matches with warning tags ── */}
+        {showResults && candidates.length > 0 && (
           <section className="rounded-xl border border-neutral-800 bg-neutral-900/10 overflow-hidden">
-            {/* Results Tabs */}
-            <div className="flex border-b border-neutral-800 bg-neutral-950/40 px-6">
-              {[
-                { id: 'results', label: '📋 Top Candidates' },
-                { id: 'rec', label: '🤖 AI Recommended' },
-                { id: 'compare', label: '⚖️ Candidate Comparison' },
-                { id: 'sources', label: '🔍 AI Sources' }
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setResultsTab(tab.id as any)}
-                  className={`px-4 py-3.5 text-xs font-semibold border-b-2 transition ${
-                    resultsTab === tab.id
-                      ? 'border-neutral-100 text-neutral-100'
-                      : 'border-transparent text-neutral-500 hover:text-neutral-300'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+            <div className="flex border-b border-neutral-800 bg-neutral-950/40 px-6 justify-between items-center pr-6">
+              <div className="flex">
+                {[
+                  { id: 'results', label: '📋 Simulated Matches' },
+                  { id: 'rec', label: '🤖 AI Top Choice' },
+                  { id: 'compare', label: '⚖️ Side-by-Side' },
+                  { id: 'sources', label: '🔍 Platforms searched' }
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setResultsTab(tab.id as any)}
+                    className={`px-4 py-3.5 text-xs font-semibold border-b-2 transition ${
+                      resultsTab === tab.id
+                        ? 'border-neutral-100 text-neutral-100'
+                        : 'border-transparent text-neutral-500 hover:text-neutral-300'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+              <span className="flex items-center gap-1.5 rounded-lg bg-neutral-900 px-2 py-1 text-[10px] font-medium text-neutral-400 border border-neutral-800" title="These candidates are simulated placeholders generated by the LLM.">
+                <Info className="h-3.5 w-3.5 text-neutral-400" /> Demo data — not real candidates
+              </span>
             </div>
 
-            {/* Results Tab Panels */}
             <div className="p-6">
               {resultsTab === 'results' && (
                 <div className="space-y-4">
                   <div className="grid gap-3">
-                    {CANDIDATES.map((cand) => (
+                    {candidates.map((cand, idx) => (
                       <div
-                        key={cand.id}
+                        key={idx}
                         onClick={() => {
                           setSelectedCandidate(cand);
                           setProfileTab('ai');
@@ -356,7 +286,9 @@ export default function HiringPage() {
                         className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-950/40 p-4 hover:border-neutral-700 transition cursor-pointer"
                       >
                         <div className="flex items-center gap-4">
-                          <img className="h-11 w-11 rounded-lg object-cover" src={cand.avatar} alt={cand.name} />
+                          <div className="h-11 w-11 rounded-lg bg-neutral-800 border border-neutral-750 flex items-center justify-center text-xs font-bold text-neutral-300">
+                            {getInitials(cand.name)}
+                          </div>
                           <div>
                             <h4 className="text-sm font-semibold text-neutral-200">{cand.name}</h4>
                             <p className="text-xs text-neutral-500 mt-0.5">
@@ -373,8 +305,8 @@ export default function HiringPage() {
                           }`}>
                             {cand.matchScore}%
                           </div>
-                          <span className="text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                            {cand.status}
+                          <span className="text-[10px] font-medium text-neutral-500 uppercase tracking-wider">
+                            {cand.experience} exp
                           </span>
                         </div>
                       </div>
@@ -385,16 +317,18 @@ export default function HiringPage() {
 
               {resultsTab === 'rec' && (
                 <div className="space-y-4">
-                  {CANDIDATES.slice(0, 1).map((c) => (
-                    <div key={c.id} className="space-y-4">
+                  {candidates.slice(0, 1).map((c, i) => (
+                    <div key={i} className="space-y-4">
                       <div className="flex items-center justify-between border-b border-neutral-850 pb-4">
                         <div className="flex items-center gap-4">
-                          <img className="h-14 w-14 rounded-xl object-cover" src={c.avatar} alt={c.name} />
+                          <div className="h-14 w-14 rounded-xl bg-neutral-800 border border-neutral-750 flex items-center justify-center text-sm font-bold text-neutral-300">
+                            {getInitials(c.name)}
+                          </div>
                           <div>
                             <div className="flex items-center gap-2">
                               <h3 className="text-base font-bold text-neutral-200">{c.name}</h3>
                               <span className="rounded bg-neutral-100 px-2 py-0.5 text-[9px] font-bold text-neutral-950 uppercase tracking-wider">
-                                AI PICK #1
+                                AI RECOMMENDED
                               </span>
                             </div>
                             <p className="text-xs text-neutral-500 mt-1">
@@ -413,31 +347,6 @@ export default function HiringPage() {
                           <h4 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">AI Assessment</h4>
                           <p className="text-sm leading-relaxed text-neutral-300">{c.aiSummary}</p>
                         </div>
-
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <div>
-                            <h4 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">Strengths</h4>
-                            <ul className="space-y-1.5">
-                              {c.strengths.map((str, i) => (
-                                <li key={i} className="text-xs text-neutral-400 flex items-start gap-2">
-                                  <span className="text-green-500 mt-0.5">✓</span>
-                                  <span>{str}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">Weaknesses</h4>
-                            <ul className="space-y-1.5">
-                              {c.weaknesses.map((wk, i) => (
-                                <li key={i} className="text-xs text-neutral-400 flex items-start gap-2">
-                                  <span className="text-red-500 mt-0.5">⚠️</span>
-                                  <span>{wk}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
                       </div>
                     </div>
                   ))}
@@ -454,22 +363,22 @@ export default function HiringPage() {
                         <th className="p-3 font-semibold text-neutral-500">Experience</th>
                         <th className="p-3 font-semibold text-neutral-500">Key Skills</th>
                         <th className="p-3 font-semibold text-neutral-500">Availability</th>
-                        <th className="p-3 font-semibold text-neutral-500">Hiring Risk</th>
+                        <th className="p-3 font-semibold text-neutral-500">Risk Assessment</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-850">
-                      {CANDIDATES.map((cand) => (
-                        <tr key={cand.id} className="hover:bg-neutral-900/10">
+                      {candidates.map((cand, idx) => (
+                        <tr key={idx} className="hover:bg-neutral-900/10">
                           <td className="p-3 font-semibold text-neutral-200">{cand.name}</td>
                           <td className="p-3">
                             <span className="text-green-400 font-bold">{cand.matchScore}%</span>
                           </td>
                           <td className="p-3 text-neutral-400">{cand.experience}</td>
-                          <td className="p-3 text-neutral-400 truncate max-w-[200px]">{cand.skills.slice(0,4).join(', ')}</td>
+                          <td className="p-3 text-neutral-400 truncate max-w-[200px]">{cand.skills.join(', ')}</td>
                           <td className="p-3 text-neutral-400">{cand.availability}</td>
                           <td className="p-3">
-                            <span className="rounded bg-neutral-800 px-2 py-0.5 text-[10px] text-neutral-400">
-                              {cand.hiringRisk}
+                            <span className="rounded bg-neutral-800 px-2 py-0.5 text-[10px] text-neutral-450">
+                              {cand.hiringRisk} Risk
                             </span>
                           </td>
                         </tr>
@@ -498,43 +407,38 @@ export default function HiringPage() {
           </section>
         )}
 
-        {/* ── Active Jobs Section ── */}
+        {/* ── Active Jobs Section (Derived from real agent actions) ── */}
         <section>
           <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-500 mb-4">
             💼 Current Openings
           </h2>
           <div className="grid gap-4 sm:grid-cols-3">
-            {JOBS.map((job) => (
-              <div key={job.id} className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5 space-y-4">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="rounded bg-red-500/10 px-2 py-0.5 text-[9px] font-bold text-red-400 border border-red-500/20">
-                      {job.priority}
-                    </span>
-                    <span className="text-[10px] text-neutral-500">{job.openSince}</span>
+            {actions.slice(0, 3).map((job) => {
+              const parsedTitle = job.draft.split('\n')[0].replace(/^#+\s*/, '') || 'Hiring Request';
+              return (
+                <div key={job.id} className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5 space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="rounded bg-blue-500/10 px-2 py-0.5 text-[9px] font-bold text-blue-400 border border-blue-500/20">
+                        Active Opening
+                      </span>
+                      <span className="text-[10px] text-neutral-500">{new Date(job.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <h3 className="text-sm font-bold text-neutral-250 mt-2 truncate">{parsedTitle}</h3>
+                    <p className="text-[10px] text-neutral-500 mt-1">Status: {job.status}</p>
                   </div>
-                  <h3 className="text-sm font-bold text-neutral-200 mt-2">{job.title}</h3>
-                  <p className="text-[10px] text-neutral-500">{job.dept}</p>
                 </div>
-
-                <div className="flex flex-wrap gap-1">
-                  {job.stack.map((s, i) => (
-                    <span key={i} className="rounded bg-neutral-900 px-2 py-0.5 text-[10px] text-neutral-400 border border-neutral-800">
-                      {s}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="flex items-center justify-between border-t border-neutral-850 pt-3">
-                  <span className="text-xs text-neutral-400">{job.applicants} Applicants</span>
-                  <span className="text-xs text-neutral-500 font-semibold">{job.status}</span>
-                </div>
+              );
+            })}
+            {actions.length === 0 && (
+              <div className="col-span-3 rounded-xl border border-neutral-800 bg-neutral-900/10 p-6 text-center text-sm text-neutral-500">
+                No active openings on record. Generate a job description to populate.
               </div>
-            ))}
+            )}
           </div>
         </section>
 
-        {/* ── Actions List Feed ── */}
+        {/* ── Actions List Feed (Clickable details) ── */}
         <section>
           <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-500 mb-4">
             📋 Generated Hiring Assets
@@ -548,7 +452,7 @@ export default function HiringPage() {
               {actions.map((card) => (
                 <div
                   key={card.id}
-                  className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-6 space-y-4 shadow-sm hover:border-neutral-700 transition"
+                  className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-6 space-y-4 shadow-sm hover:border-neutral-700 transition animate-in fade-in duration-200"
                 >
                   <div className="flex items-center justify-between">
                     <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20">
@@ -565,7 +469,7 @@ export default function HiringPage() {
                     {card.draft ? card.draft.split('\n')[0].replace(/^#+\s*/, '') : 'Draft'}
                   </h3>
 
-                  <div className="whitespace-pre-line text-sm leading-relaxed text-neutral-300">
+                  <div className="whitespace-pre-line text-sm leading-relaxed text-neutral-305 bg-neutral-950/40 p-4 rounded-xl border border-neutral-900">
                     {card.draft}
                   </div>
 
@@ -624,9 +528,11 @@ export default function HiringPage() {
             <div className="flex-1 overflow-y-auto space-y-6">
               {/* Profile Hero */}
               <div className="flex items-center gap-4">
-                <img className="h-16 w-16 rounded-xl object-cover" src={selectedCandidate.avatar} alt={selectedCandidate.name} />
+                <div className="h-16 w-16 rounded-xl bg-neutral-800 border border-neutral-750 flex items-center justify-center text-lg font-bold text-neutral-350">
+                  {getInitials(selectedCandidate.name)}
+                </div>
                 <div>
-                  <h2 className="text-lg font-bold text-neutral-200">{selectedCandidate.name}</h2>
+                  <h2 className="text-lg font-bold text-neutral-250">{selectedCandidate.name}</h2>
                   <p className="text-xs text-neutral-500 mt-1">
                     {selectedCandidate.role} · {selectedCandidate.currentCompany}
                   </p>
@@ -645,9 +551,7 @@ export default function HiringPage() {
               <div className="flex border-b border-neutral-800">
                 {[
                   { id: 'ai', label: 'AI Analysis' },
-                  { id: 'resume', label: 'Resume' },
-                  { id: 'skills', label: 'Skills' },
-                  { id: 'exp', label: 'Experience' }
+                  { id: 'skills', label: 'Skills' }
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -675,76 +579,26 @@ export default function HiringPage() {
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="rounded-xl border border-neutral-800 bg-neutral-950/20 p-4 text-center">
                         <div className="text-xs font-bold text-neutral-200">{selectedCandidate.hiringRisk}</div>
-                        <div className="text-[10px] text-neutral-500 mt-1 uppercase tracking-wider">Hiring Risk</div>
+                        <div className="text-[10px] text-neutral-500 mt-1 uppercase tracking-wider">Risk Level</div>
                       </div>
                       <div className="rounded-xl border border-neutral-800 bg-neutral-950/20 p-4 text-center">
-                        <div className="text-xs font-bold text-neutral-200">{selectedCandidate.aiConfidence}%</div>
-                        <div className="text-[10px] text-neutral-500 mt-1 uppercase tracking-wider">AI Confidence</div>
+                        <div className="text-xs font-bold text-neutral-200">{selectedCandidate.experience}</div>
+                        <div className="text-[10px] text-neutral-500 mt-1 uppercase tracking-wider">Experience</div>
                       </div>
-                    </div>
-
-                    <div>
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">Strengths</h4>
-                      <ul className="space-y-1.5">
-                        {selectedCandidate.strengths.map((str, i) => (
-                          <li key={i} className="text-xs text-neutral-400 flex items-start gap-2">
-                            <span className="text-green-400 font-bold mt-0.5">✓</span>
-                            <span>{str}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                )}
-
-                {profileTab === 'resume' && (
-                  <div className="space-y-4">
-                    <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-4 space-y-2">
-                      <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Resume Summary</div>
-                      <p className="text-xs leading-relaxed text-neutral-350">{selectedCandidate.resumeSummary}</p>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="text-xs font-bold text-neutral-200">Contact Details</div>
-                      <div className="text-xs text-neutral-400">Email: {selectedCandidate.email}</div>
-                      <div className="text-xs text-neutral-400">Phone: {selectedCandidate.phone}</div>
                     </div>
                   </div>
                 )}
 
                 {profileTab === 'skills' && (
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">Skills Match</h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {selectedCandidate.skills.map((s, i) => (
-                          <span key={i} className="rounded bg-green-500/10 px-2.5 py-0.5 text-xs text-green-400 border border-green-500/20">
-                            {s}
-                          </span>
-                        ))}
-                      </div>
+                  <div>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">Skills Match</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedCandidate.skills.map((s, i) => (
+                        <span key={i} className="rounded bg-green-500/10 px-2.5 py-0.5 text-xs text-green-400 border border-green-500/20">
+                          {s}
+                        </span>
+                      ))}
                     </div>
-                    <div>
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">Missing Skills</h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {selectedCandidate.missingSkills.map((s, i) => (
-                          <span key={i} className="rounded bg-red-500/10 px-2.5 py-0.5 text-xs text-red-400 border border-red-500/20">
-                            {s}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {profileTab === 'exp' && (
-                  <div className="space-y-4">
-                    {selectedCandidate.experienceList.map((exp, i) => (
-                      <div key={i} className="border-l-2 border-neutral-850 pl-4 py-1">
-                        <div className="text-xs font-semibold text-neutral-200">{exp.role}</div>
-                        <div className="text-[11px] text-neutral-500">{exp.company} · {exp.duration}</div>
-                        <p className="text-xs text-neutral-400 mt-1.5 leading-relaxed">{exp.desc}</p>
-                      </div>
-                    ))}
                   </div>
                 )}
               </div>
