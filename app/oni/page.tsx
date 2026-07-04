@@ -127,15 +127,15 @@ export default function OniPage() {
       
       {/* Messages Scroll Area */}
       {hasStarted ? (
-        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8">
-          <div className="max-w-3xl mx-auto space-y-8 pb-32">
+        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8 flex flex-col justify-center">
+          <div className="max-w-3xl w-full mx-auto space-y-8 pb-32">
             {messages.map((msg) => (
               <div
                 key={msg.id}
                 className={`flex w-full flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
               >
                 {msg.sender === 'user' ? (
-                  <div className="bg-neutral-100 text-neutral-900 rounded-2xl px-5 py-2.5 max-w-lg text-sm font-medium leading-relaxed shadow-sm">
+                  <div className="bg-gradient-to-br from-neutral-800 to-neutral-900 text-neutral-100 rounded-2xl px-5 py-2.5 max-w-lg text-sm font-medium leading-relaxed border border-white/5 shadow-md">
                     {msg.text}
                   </div>
                 ) : (
@@ -148,25 +148,14 @@ export default function OniPage() {
                       <span className="text-[10px] font-extrabold tracking-wider text-neutral-400">ONI</span>
                     </div>
 
-                    {/* Oni Response Bubble */}
-                    <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 space-y-3">
-                      <div className="flex items-center justify-between border-b border-neutral-850 pb-2">
-                        <span className="text-xs font-bold text-neutral-300 flex items-center gap-1.5">
-                          <Sparkles className="h-3.5 w-3.5 text-neutral-400" /> Assistant Response
-                        </span>
-                        {msg.agentUsed && (
-                          <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${badgeClasses[msg.agentUsed]}`}>
-                            {msg.agentUsed}
-                          </span>
-                        )}
-                      </div>
-                      
+                    {/* Oni Response Text - No container box or badge */}
+                    <div className="pl-8 space-y-3">
                       <p className="text-sm text-neutral-300 whitespace-pre-line leading-relaxed">
                         {msg.text}
                       </p>
 
                       {msg.requiresApproval && (
-                        <div className="flex gap-2 pt-2 border-t border-neutral-850">
+                        <div className="flex gap-2 pt-2">
                           {msg.status === 'pending' ? (
                             <>
                               <button
@@ -177,7 +166,7 @@ export default function OniPage() {
                               </button>
                               <button
                                 onClick={() => handleUpdateStatus(msg.id, 'rejected')}
-                                className="rounded border border-neutral-850 bg-transparent px-3.5 py-1 text-xs font-medium text-neutral-400 hover:bg-neutral-900 transition"
+                                className="rounded border border-neutral-800 bg-transparent px-3.5 py-1 text-xs font-medium text-neutral-400 hover:bg-neutral-900 transition"
                               >
                                 Reject
                               </button>
@@ -203,7 +192,7 @@ export default function OniPage() {
                   </div>
                   <span className="text-[10px] font-extrabold tracking-wider text-neutral-400">ONI</span>
                 </div>
-                <div className="bg-neutral-900 border border-neutral-850 rounded-xl px-4 py-3 flex items-center gap-2">
+                <div className="pl-8 py-2 flex items-center gap-2">
                   <span className="text-xs font-medium text-neutral-400 animate-pulse">Thinking</span>
                   <span className="flex gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-neutral-500 animate-bounce" style={{ animationDelay: '0ms' }} />
