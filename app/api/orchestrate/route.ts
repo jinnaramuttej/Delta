@@ -69,35 +69,6 @@ export async function POST(req: NextRequest) {
     // ── Step 3: Forward to the appropriate agent endpoint ─────────────────────
     const { agent, extractedContext } = classification;
 
-    // Check if agent route is implemented, if not return mock data matching API contract
-    if (agent !== 'hiring') {
-      console.log(`[orchestrate] Routing to mock handler for unimplemented agent: ${agent}`);
-      const mockResponses: Record<string, any> = {
-        finance: {
-          agentUsed: 'finance',
-          draft: 'Mock Finance Agent Draft - Monthly burn: $12k, Runway: 18 months.',
-          requiresApproval: false,
-          summary: `Calculated metrics for: ${extractedContext || message}`,
-        },
-        legal: {
-          agentUsed: 'legal',
-          draft: 'Mock NDA Draft agreement for partner signoff.',
-          requiresApproval: true,
-          summary: `Generated NDA for: ${extractedContext || message}`,
-        },
-        gtm: {
-          agentUsed: 'gtm',
-          draft: 'Mock GTM Draft marketing plan for launch.',
-          requiresApproval: false,
-          summary: `Created launch plan for: ${extractedContext || message}`,
-        },
-      };
-
-      const response = mockResponses[agent] || mockResponses.gtm;
-      console.log('[orchestrate] Returning mock response:', response);
-      return NextResponse.json(response);
-    }
-
     const agentUrl = `http://localhost:3000/api/agent/${agent}`;
     console.log('[orchestrate] Calling agent:', agentUrl);
 
