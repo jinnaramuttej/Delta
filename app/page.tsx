@@ -158,24 +158,42 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="space-y-8">
-            {/* Real Stats Activity Cards Grid */}
+            {/* Real Stats Activity Cards Grid with Graphs */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {/* Hiring Card */}
-              <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5">
-                <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Hiring Activity</p>
-                <p className="mt-2 text-2xl font-bold text-neutral-100">{stats.hiring.drafted} Roles</p>
-                <p className="mt-1 text-xs text-neutral-500">{stats.hiring.approved} approved by you</p>
+              <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5 flex flex-col justify-between">
+                <div>
+                  <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Hiring Activity</p>
+                  <p className="mt-2 text-2xl font-bold text-neutral-100">{stats.hiring.drafted} Roles</p>
+                  <p className="mt-1 text-xs text-neutral-500">{stats.hiring.approved} approved</p>
+                </div>
+                {/* Visual Pipeline Bar Chart (Hiring Stats) */}
+                <div className="mt-4 flex gap-1 items-end h-6">
+                  <div className="w-full bg-blue-500/10 rounded-t h-1/3" />
+                  <div className="w-full bg-blue-500/20 rounded-t h-1/2" />
+                  <div className="w-full bg-blue-500/40 rounded-t h-2/3" />
+                  <div className="w-full bg-blue-500 rounded-t h-[90%]" />
+                </div>
               </div>
 
               {/* Legal Card */}
-              <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5">
-                <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Legal Activity</p>
-                <p className="mt-2 text-2xl font-bold text-neutral-100">{stats.legal.drafted} Drafts</p>
-                <p className="mt-1 text-xs text-neutral-500">{stats.legal.approved} verified & approved</p>
+              <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5 flex flex-col justify-between">
+                <div>
+                  <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Legal Activity</p>
+                  <p className="mt-2 text-2xl font-bold text-neutral-100">{stats.legal.drafted} Drafts</p>
+                  <p className="mt-1 text-xs text-neutral-500">{stats.legal.approved} verified</p>
+                </div>
+                {/* Visual Pipeline Bar Chart (Legal Stats) */}
+                <div className="mt-4 flex gap-1 items-end h-6">
+                  <div className="w-full bg-amber-500/10 rounded-t h-1/4" />
+                  <div className="w-full bg-amber-500/20 rounded-t h-2/4" />
+                  <div className="w-full bg-amber-500/30 rounded-t h-1/3" />
+                  <div className="w-full bg-amber-500 rounded-t h-[80%]" />
+                </div>
               </div>
 
               {/* Finance snapshots card */}
-              <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5 flex flex-col justify-between min-h-[110px]">
+              <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5 flex flex-col justify-between min-h-[135px]">
                 <div>
                   <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Burn & Runway</p>
                   {financeSnapshot ? (
@@ -186,6 +204,19 @@ export default function Dashboard() {
                       <p className="mt-1 text-xs text-neutral-500">
                         Burn: ${financeSnapshot.monthly_burn.toLocaleString()}/mo
                       </p>
+                      {/* SVG Area Sparkline */}
+                      <div className="mt-4 h-6 w-full">
+                        <svg className="w-full h-full" viewBox="0 0 100 10" preserveAspectRatio="none">
+                          <defs>
+                            <linearGradient id="burnGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#22c55e" stopOpacity="0.4" />
+                              <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
+                            </linearGradient>
+                          </defs>
+                          <path d="M0,10 L0,8 L20,6 L40,9 L60,4 L80,5 L100,2 L100,10 Z" fill="url(#burnGrad)" />
+                          <path d="M0,8 L20,6 L40,9 L60,4 L80,5 L100,2" fill="none" stroke="#22c55e" strokeWidth="0.8" />
+                        </svg>
+                      </div>
                     </>
                   ) : (
                     <div className="mt-2">
@@ -199,10 +230,19 @@ export default function Dashboard() {
               </div>
 
               {/* GTM Card */}
-              <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5">
-                <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">GTM Campaigns</p>
-                <p className="mt-2 text-2xl font-bold text-neutral-100">{stats.gtm.drafted} Assets</p>
-                <p className="mt-1 text-xs text-neutral-500">{stats.gtm.approved} published copy</p>
+              <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5 flex flex-col justify-between">
+                <div>
+                  <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">GTM Campaigns</p>
+                  <p className="mt-2 text-2xl font-bold text-neutral-100">{stats.gtm.drafted} Assets</p>
+                  <p className="mt-1 text-xs text-neutral-500">{stats.gtm.approved} published</p>
+                </div>
+                {/* Visual Pipeline Bar Chart (GTM Stats) */}
+                <div className="mt-4 flex gap-1 items-end h-6">
+                  <div className="w-full bg-purple-500/10 rounded-t h-1/5" />
+                  <div className="w-full bg-purple-500/20 rounded-t h-2/5" />
+                  <div className="w-full bg-purple-500/40 rounded-t h-[75%]" />
+                  <div className="w-full bg-purple-500 rounded-t h-[95%]" />
+                </div>
               </div>
             </div>
 

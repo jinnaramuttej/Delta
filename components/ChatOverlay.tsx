@@ -104,10 +104,10 @@ export default function ChatOverlay() {
         <MessageSquare className="h-6 w-6" />
       </button>
 
-      {/* Slide-in panel */}
+      {/* Slide-in panel - full overlay */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm transition-opacity duration-300">
-          <div className="relative flex h-full w-full max-w-md flex-col border-l border-neutral-800 bg-neutral-950 p-6 shadow-2xl animate-in slide-in-from-right duration-300">
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/85 backdrop-blur-md transition-opacity duration-300">
+          <div className="relative flex h-full w-full flex-col bg-neutral-950 p-10 shadow-2xl animate-in fade-in zoom-in-95 duration-300">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-neutral-800 pb-4 mb-4">
               <div>
@@ -141,7 +141,7 @@ export default function ChatOverlay() {
 
               {response && (
                 <div className="rounded-xl border border-neutral-800 bg-neutral-900/20 p-5 shadow-sm space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between border-b border-neutral-850 pb-2.5">
                     <span
                       className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${
                         badgeClasses[response.agentUsed]
@@ -149,7 +149,31 @@ export default function ChatOverlay() {
                     >
                       {response.agentUsed}
                     </span>
-                    <span className="text-[10px] text-neutral-500">Just now</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-neutral-500">Just now</span>
+                      {response.requiresApproval && response.status === 'pending' && (
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleUpdateStatus(response.id, 'approved')}
+                            className="rounded bg-neutral-100 px-2 py-0.5 text-[9px] font-bold text-neutral-950 hover:bg-neutral-200 transition"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleUpdateStatus(response.id, 'rejected')}
+                            className="rounded border border-neutral-800 bg-transparent px-2 py-0.5 text-[9px] font-medium text-neutral-400 hover:bg-neutral-900 transition"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      )}
+                      {response.requiresApproval && response.status === 'approved' && (
+                        <span className="text-[9px] font-semibold text-green-400">✓ Approved</span>
+                      )}
+                      {response.requiresApproval && response.status === 'rejected' && (
+                        <span className="text-[9px] font-semibold text-red-400">✗ Rejected</span>
+                      )}
+                    </div>
                   </div>
                   <div className="text-[11px] italic text-neutral-500">Prompt: "{response.inputMessage}"</div>
                   <h4 className="text-xs font-bold text-neutral-200 leading-snug">
@@ -158,31 +182,6 @@ export default function ChatOverlay() {
                   <p className="text-xs text-neutral-300 whitespace-pre-line leading-relaxed">
                     {response.draft}
                   </p>
-
-                  {response.requiresApproval && (
-                    <div className="flex gap-2 border-t border-neutral-800/80 pt-3 mt-3">
-                      {response.status === 'pending' ? (
-                        <>
-                          <button
-                            onClick={() => handleUpdateStatus(response.id, 'approved')}
-                            className="flex-1 rounded-lg bg-neutral-100 py-1 text-[10px] font-semibold text-neutral-950 hover:bg-neutral-200 transition"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => handleUpdateStatus(response.id, 'rejected')}
-                            className="flex-1 rounded-lg border border-neutral-800 bg-transparent py-1 text-[10px] font-semibold text-neutral-400 hover:border-neutral-700 hover:bg-neutral-900/40 transition"
-                          >
-                            Reject
-                          </button>
-                        </>
-                      ) : response.status === 'approved' ? (
-                        <span className="text-[10px] font-semibold text-green-400">✓ Approved</span>
-                      ) : (
-                        <span className="text-[10px] font-semibold text-red-400">✗ Rejected</span>
-                      )}
-                    </div>
-                  )}
                 </div>
               )}
 
