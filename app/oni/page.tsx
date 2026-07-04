@@ -29,16 +29,40 @@ type Message = {
   actionId?: string;
 };
 
+const ONI_CHAT_KEY = 'oni_chat_history';
+
 export default function OniPage() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    // Hydrate from localStorage on first render
+    if (typeof window === 'undefined') return [];
+    try {
+      const saved = localStorage.getItem(ONI_CHAT_KEY);
+      return saved ? (JSON.parse(saved) as Message[]) : [];
+    } catch {
+      return [];
+    }
+  });
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [hasStarted, setHasStarted] = useState(false);
+  const [hasStarted, setHasStarted] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const saved = localStorage.getItem(ONI_CHAT_KEY);
+      const msgs = saved ? (JSON.parse(saved) as Message[]) : [];
+      return msgs.length > 0;
+    } catch { return false; }
+  });
   const [founderName, setFounderName] = useState('');
   const [greeting, setGreeting] = useState('Hello');
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [profileTab, setProfileTab] = useState<'ai' | 'skills'>('ai');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const clearChat = () => {
+    localStorage.removeItem(ONI_CHAT_KEY);
+    setMessages([]);
+    setHasStarted(false);
+  };
 
   const badgeClasses: Record<string, string> = {
     hiring: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
@@ -67,6 +91,13 @@ export default function OniPage() {
     else if (hour < 18) setGreeting('Good afternoon');
     else setGreeting('Good evening');
   }, []);
+
+  // Persist messages to localStorage whenever they change
+  useEffect(() => {
+    if (messages.length > 0) {
+      try { localStorage.setItem(ONI_CHAT_KEY, JSON.stringify(messages)); } catch { /* quota exceeded */ }
+    }
+  }, [messages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -247,6 +278,18 @@ export default function OniPage() {
   return (
     <div className="flex-1 flex flex-col bg-neutral-950 text-neutral-100 overflow-hidden relative">
       
+      {/* Clear chat button — only visible when history exists */}
+      {hasStarted && messages.length > 0 && (
+        <div className="absolute top-4 right-6 z-10">
+          <button
+            onClick={clearChat}
+            className="flex items-center gap-1.5 text-[10px] text-neutral-500 hover:text-neutral-300 border border-neutral-800 hover:border-neutral-700 rounded-lg px-2.5 py-1.5 transition bg-neutral-950/80 backdrop-blur-sm"
+          >
+            <X className="h-3 w-3" /> Clear chat
+          </button>
+        </div>
+      )}
+
       {/* Messages Scroll Area */}
       {hasStarted ? (
         <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8 flex flex-col justify-center">
