@@ -114,7 +114,9 @@ export default function FinancePage() {
     const runway = cash / burn;
 
     try {
+      const uuid = crypto.randomUUID();
       const { error: insertErr } = await supabase.from('finance_snapshots').insert({
+        id: uuid,
         founder_id: FOUNDER_ID,
         cash_in_bank: cash,
         monthly_burn: burn,
