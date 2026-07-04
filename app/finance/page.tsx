@@ -193,6 +193,11 @@ export default function FinancePage() {
     return `₹${(val / 1000).toFixed(0)}k`;
   };
 
+  // Derived stats
+  const cashBalance = dbSnapshots[0]?.cash_in_bank ?? 0;
+  const monthlyBurn = dbSnapshots[0]?.monthly_burn ?? 0;
+  const computedRunway = (cashBalance > 0 && monthlyBurn > 0) ? (cashBalance / monthlyBurn) : null;
+
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-neutral-950 text-neutral-100 overflow-y-auto pb-24">
       {/* Header */}
@@ -210,20 +215,27 @@ export default function FinancePage() {
           <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5">
             <p className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">Cash Balance</p>
             <p className="text-2xl font-bold font-mono text-neutral-100 mt-2">
-              {formatCurrency(CASH_BALANCE)}
+              {cashBalance > 0 ? formatCurrency(cashBalance) : 'No data yet'}
             </p>
           </div>
           <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-5 relative overflow-hidden">
             <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
             <p className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">Computed Runway</p>
-            <p className="text-2xl font-bold font-mono text-neutral-100 mt-2">
-              {runwayDisplay !== null ? `${runwayDisplay.toFixed(1)} mo` : 'N/A'}
-            </p>
+            {computedRunway !== null ? (
+              <p className="text-2xl font-bold font-mono text-neutral-100 mt-2">
+                {computedRunway.toFixed(1)} mo
+              </p>
+            ) : (
+              <div className="mt-2 space-y-1">
+                <p className="text-xs font-semibold text-amber-400">No data yet</p>
+                <p className="text-[9px] text-neutral-500">Log a snapshot to compute</p>
+              </div>
+            )}
           </div>
           <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5">
             <p className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">Monthly Burn</p>
             <p className="text-2xl font-bold font-mono text-neutral-100 mt-2">
-              {formatCurrency(dbSnapshots[0]?.monthly_burn ?? CURRENT_GROSS_BURN)}
+              {monthlyBurn > 0 ? formatCurrency(monthlyBurn) : 'No data yet'}
             </p>
           </div>
           <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5">
