@@ -1,0 +1,178 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { supabase } from '@/lib/supabase';
+
+const FOUNDER_ID = '8bbb8137-73b7-4e07-b154-6d0b8034532f';
+
+type ActionCard = {
+  id: string;
+  agentUsed: 'finance' | 'hiring' | 'legal' | 'gtm';
+  inputMessage: string;
+  draft: string;
+  requiresApproval: boolean;
+  status: string;
+  createdAt: string;
+};
+
+export default function FinancePage() {
+  const [actions, setActions] = useState<ActionCard[]>([]);
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const fetchFinanceActions = async () => {
+    const { data, error } = await supabase
+      .from('agent_actions')
+      .select('id, agent_type, input_message, output_draft, requires_approval, status, created_at')
+      .eq('founder_id', FOUNDER_ID)
+      .eq('agent_type', 'finance')
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      const mapped: ActionCard[] = data.map((row) => ({
+        id: row.id,
+        agentUsed: row.agent_type as any,
+        inputMessage: row.input_message,
+        draft: (row.output_draft as { text?: string })?.text ?? '',
+        requiresApproval: row.requires_approval,
+        status: row.status,
+        createdAt: row.created_at,
+      }));
+      setActions(mapped);
+    }
+  };
+
+  useEffect(() => {
+    fetchFinanceActions();
+  }, []);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+  }, [actions, loading]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim() || loading) return;
+
+    const userMessage = message.trim();
+    setMessage('');
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data: profile } = await supabase
+        .from('founder_profile')
+        .select('*')
+        .eq('id', FOUNDER_ID)
+        .single();
+
+      const res = await fetch('/api/agent/finance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          founderId: FOUNDER_ID,
+          message: userMessage,
+          extractedContext: userMessage,
+          founderProfile: profile || {},
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Agent request failed: ${res.status}`);
+      }
+
+      await fetchFinanceActions();
+    } catch (err: any) {
+      setError(err.message || 'An error occurred.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex h-screen flex-col bg-neutral-950 text-neutral-100">
+      <header className="border-b border-neutral-800 bg-neutral-950/80 px-8 py-4 backdrop-blur-md">
+        <h1 className="text-xl font-bold tracking-tight text-neutral-50">Finance Agent</h1>
+        <p className="text-xs text-neutral-500 mt-0.5">Evaluate runway, estimate burn rates, and review budget splits</p>
+      </header>
+
+      <main ref={scrollRef} className="flex-1 overflow-y-auto px-8 py-6">
+        <div className="mx-auto max-w-2xl space-y-6 pb-28">
+          {error && (
+            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
+              {error}
+            </div>
+          )}
+
+          {loading && (
+            <div className="animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/40 p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-neutral-800 text-neutral-400 border border-neutral-700 animate-pulse">
+                  Finance Specialist
+                </span>
+                <span className="text-xs text-neutral-500">Just now</span>
+              </div>
+              <h3 className="mt-3 text-base font-semibold text-neutral-300 flex items-center gap-2">
+                Thinking...
+              </h3>
+            </div>
+          )}
+
+          {actions.length === 0 && !loading ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center text-neutral-500">
+              <p className="text-sm">No finance calculations yet. Ask about your runway or budget below.</p>
+            </div>
+          ) : (
+            actions.map((card) => (
+              <div
+                key={card.id}
+                className="rounded-xl border border-neutral-800 bg-neutral-900/20 p-6 transition hover:border-neutral-700 shadow-md"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-green-500/10 text-green-400 border border-green-500/20">
+                    Finance
+                  </span>
+                  <span className="text-xs text-neutral-500">
+                    {new Date(card.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+                <div className="mt-2 text-xs italic text-neutral-500">Prompt: "{card.inputMessage}"</div>
+                <h3 className="mt-3 text-sm font-semibold text-neutral-200">
+                  {card.draft ? card.draft.split('\n')[0].replace(/^#+\s*/, '') : 'Draft'}
+                </h3>
+                <div className="mt-3 whitespace-pre-line text-sm leading-relaxed text-neutral-300">
+                  {card.draft}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </main>
+
+      <footer className="fixed bottom-0 left-64 right-0 border-t border-neutral-800 bg-neutral-950/80 p-4 backdrop-blur-md">
+        <form onSubmit={handleSubmit} className="mx-auto max-w-2xl flex gap-2">
+          <input
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Ask about burn rates, calculate runway metrics..."
+            disabled={loading}
+            className="flex-1 rounded-xl border border-neutral-800 bg-neutral-900/50 px-4 py-3 text-sm text-neutral-100 placeholder-neutral-500 transition focus:border-neutral-700 focus:outline-none disabled:opacity-50"
+          />
+          <button
+            type="submit"
+            disabled={!message.trim() || loading}
+            className="inline-flex items-center justify-center rounded-xl bg-neutral-100 px-5 py-3 text-sm font-semibold text-neutral-950 hover:bg-neutral-200 disabled:bg-neutral-900 disabled:text-neutral-600"
+          >
+            Send
+          </button>
+        </form>
+      </footer>
+    </div>
+  );
+}
