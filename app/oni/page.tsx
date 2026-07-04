@@ -128,9 +128,48 @@ export default function OniPage() {
           if (ollamaRes.ok) {
             const rawText = (await ollamaRes.json()).response;
             const cleanedText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-            const parsed = JSON.parse(cleanedText);
-            if (Array.isArray(parsed)) {
-              candidatesList = parsed;
+            try {
+              const parsed = JSON.parse(cleanedText);
+              if (Array.isArray(parsed)) {
+                candidatesList = parsed;
+              }
+            } catch (jsonErr) {
+              console.warn("JSON parse failed, loading default fallback profiles:", jsonErr);
+              candidatesList = [
+                {
+                  name: "Aarav Sharma",
+                  role: "Backend Engineer",
+                  experience: "4 years",
+                  matchScore: 94,
+                  skills: ["Node.js", "Express", "MongoDB", "TypeScript"],
+                  availability: "Immediate",
+                  currentCompany: "TechSolutions",
+                  aiSummary: "Strong backend specialist with extensive experience building REST APIs, managing database clusters, and scaling microservices.",
+                  hiringRisk: "Low"
+                },
+                {
+                  name: "Priya Patel",
+                  role: "Senior Backend Developer",
+                  experience: "6 years",
+                  matchScore: 89,
+                  skills: ["Python", "Django", "PostgreSQL", "AWS"],
+                  availability: "2 weeks notice",
+                  currentCompany: "ScaleUp Systems",
+                  aiSummary: "Senior engineer specializing in cloud architecture, database query optimizations, and secure systems engineering.",
+                  hiringRisk: "Low"
+                },
+                {
+                  name: "Rohan Das",
+                  role: "Fullstack Eng (Backend Focused)",
+                  experience: "3 years",
+                  matchScore: 82,
+                  skills: ["Node.js", "React", "PostgreSQL", "Docker"],
+                  availability: "Immediate",
+                  currentCompany: "Freelance / Self-employed",
+                  aiSummary: "Versatile engineer with clean coding practices, solid system integration knowledge, and robust containerization habits.",
+                  hiringRisk: "Medium"
+                }
+              ];
             }
           }
         } catch (simErr) {
