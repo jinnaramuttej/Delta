@@ -113,7 +113,7 @@ export default function OniPage() {
 
       if (data.agentUsed === 'hiring') {
         try {
-          const modelName = process.env.NEXT_PUBLIC_OLLAMA_MODEL || 'qwen3:8b';
+          const modelName = process.env.NEXT_PUBLIC_OLLAMA_MODEL || process.env.OLLAMA_MODEL || 'phi3';
           const ollamaRes = await fetch('http://localhost:11434/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -121,7 +121,7 @@ export default function OniPage() {
               model: modelName,
               prompt: `/no_think Generate exactly 3 realistic but clearly fictional example candidate profiles for this hiring role: "${queryText}". Return ONLY a raw JSON array matching this typescript shape: Array<{ name: string, role: string, experience: string, matchScore: number, skills: string[], availability: string, currentCompany: string, aiSummary: string, hiringRisk: 'Low' | 'Medium' | 'High' }>. Do not include markdown code block formatting or explanation, just the raw JSON.`,
               stream: false,
-              options: { temperature: 0.1, num_predict: 250 },
+              options: { temperature: 0.1, num_predict: 800 },
             })
           });
 
