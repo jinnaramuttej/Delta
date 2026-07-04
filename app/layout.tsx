@@ -18,7 +18,6 @@ export const metadata: Metadata = {
 };
 
 import Sidebar from "@/components/Sidebar";
-import ChatOverlay from "@/components/ChatOverlay";
 
 export default function RootLayout({
   children,
@@ -35,7 +34,6 @@ export default function RootLayout({
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {children}
         </div>
-        <ChatOverlay />
       </body>
     </html>
   );
