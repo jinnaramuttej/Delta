@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { 
-  Users, Briefcase, UserCheck, Play, ArrowRight, ShieldCheck, 
-  ExternalLink, Check, X, Calendar, ClipboardCheck, Award, FileText, Info, HelpCircle
+import {
+  Users, Briefcase, UserCheck, Check, X, FileText, Info, HelpCircle,
+  ChevronDown, ChevronUp, CheckCircle, Clock, ExternalLink
 } from 'lucide-react';
+import Link from 'next/link';
 
 const FOUNDER_ID = '8bbb8137-73b7-4e07-b154-6d0b8034532f';
 
@@ -42,20 +43,17 @@ const AI_SOURCES = [
 
 export default function HiringPage() {
   const [actions, setActions] = useState<ActionCard[]>([]);
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  // Dynamic Candidates generated via Ollama model calls
+  // Simulated candidates (populated from past Ollama calls via session state)
   const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [showResults, setShowResults] = useState(false);
+  const [showResults] = useState(false);
   const [resultsTab, setResultsTab] = useState<'results' | 'rec' | 'compare' | 'sources'>('results');
-  
+
   // Selected candidate profile slide-over panel
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [profileTab, setProfileTab] = useState<'ai' | 'skills'>('ai');
 
-  // Expanded generated asset state for Generated Hiring Assets section
+  // Expanded draft expand state for Full History section
   const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
 
   // Screening questions map: assetCardId -> questions list
@@ -88,77 +86,6 @@ export default function HiringPage() {
     fetchHiringActions();
   }, []);
 
-  const handleQuery = async (queryText: string) => {
-    if (!queryText.trim() || loading) return;
-
-    setLoading(true);
-    setError(null);
-    setShowResults(false);
-
-    try {
-      const { data: profile } = await supabase
-        .from('founder_profile')
-        .select('*')
-        .eq('id', FOUNDER_ID)
-        .single();
-
-      // 1. Send the primary agent request
-      const res = await fetch('/api/agent/hiring', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          founderId: FOUNDER_ID,
-          message: queryText,
-          extractedContext: queryText,
-          founderProfile: profile || {},
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error(`Agent request failed: ${res.status}`);
-      }
-
-      // 2. Fetch 3 dynamic simulated candidate profiles from Ollama
-      try {
-        const ollamaRes = await fetch('http://localhost:11434/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'qwen3:8b',
-            prompt: `You are a startup HR matches generator. Generate exactly 3 realistic but clearly fictional example candidate profiles for this hiring role: "${queryText}". Return ONLY a raw JSON array matching this typescript shape: Array<{ name: string, role: string, experience: string, matchScore: number, skills: string[], availability: string, currentCompany: string, aiSummary: string, hiringRisk: 'Low' | 'Medium' | 'High' }>. Do not include markdown code block formatting or explanation, just the raw JSON.`,
-            stream: false,
-            options: { temperature: 0.1 },
-            think: false
-          })
-        });
-
-        if (ollamaRes.ok) {
-          const rawText = (await ollamaRes.json()).response;
-          const cleanedText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-          const parsed = JSON.parse(cleanedText);
-          if (Array.isArray(parsed)) {
-            setCandidates(parsed);
-          }
-        }
-      } catch (simErr) {
-        console.error("Failed to generate dynamic simulator matches:", simErr);
-      }
-
-      await fetchHiringActions();
-      setShowResults(true);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    handleQuery(message);
-    setMessage('');
-  };
-
   const handleUpdateStatus = async (id: string, nextStatus: 'approved' | 'rejected') => {
     try {
       const { error } = await supabase
@@ -185,10 +112,9 @@ export default function HiringPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'qwen3:8b',
-          prompt: `Based on this job description draft:\n"${jobDescription}"\nGenerate exactly 5 relevant interview screening questions. Return as a raw JSON string array: e.g. ["Q1?", "Q2?"]. Do not add any conversational replies or explanation.`,
+          prompt: `/no_think Based on this job description draft:\n"${jobDescription}"\nGenerate exactly 5 relevant interview screening questions. Return as a raw JSON string array: e.g. ["Q1?", "Q2?"]. Do not add any conversational replies or explanation.`,
           stream: false,
-          options: { temperature: 0.2 },
-          think: false
+          options: { temperature: 0.2, num_predict: 300 },
         })
       });
       if (res.ok) {
@@ -216,108 +142,245 @@ export default function HiringPage() {
     rejected: 'bg-red-500/10 text-red-400 border border-red-500/20',
   };
 
+  // Derived stats
+  const totalDrafted = actions.length;
+  const pendingCount = actions.filter(a => a.status === 'pending').length;
+  const approvedCount = actions.filter(a => a.status === 'approved').length;
+  const rejectedCount = actions.filter(a => a.status === 'rejected').length;
+  const pendingActions = actions.filter(a => a.status === 'pending');
+
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-neutral-950 text-neutral-100 overflow-y-auto pb-24">
       {/* Header */}
       <header className="border-b border-neutral-800 bg-neutral-950/80 px-8 py-5 backdrop-blur-md sticky top-0 z-30">
-        <h1 className="text-xl font-bold tracking-tight text-neutral-50">Hiring Command</h1>
-        <p className="text-xs text-neutral-500 mt-0.5">Automated screening, search orchestration, and talent matching</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-neutral-50">Hiring Pipeline</h1>
+            <p className="text-xs text-neutral-500 mt-0.5">Approval queue, pipeline overview, and candidate data</p>
+          </div>
+          <Link
+            href="/oni"
+            className="flex items-center gap-1.5 text-xs text-neutral-400 hover:text-neutral-200 transition border border-neutral-800 rounded-lg px-3 py-1.5 hover:border-neutral-700"
+          >
+            Draft new job descriptions via Oni <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
+        </div>
       </header>
 
       <div className="p-8 max-w-5xl mx-auto w-full space-y-10">
-        {/* Query Input Card */}
-        <section className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-400 mb-3 flex items-center gap-2">
-            <span>✨</span> Query Agent
-          </h2>
-          <form onSubmit={handleSubmit} className="flex gap-2">
-            <input
-              type="text"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Ask hiring agent to recruit, generate job descriptions, screen developers..."
-              disabled={loading}
-              className="flex-1 rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-100 placeholder-neutral-500 transition focus:border-neutral-700 focus:outline-none"
-            />
-            <button
-              type="submit"
-              disabled={!message.trim() || loading}
-              className="rounded-xl bg-neutral-100 px-6 py-3 text-sm font-semibold text-neutral-950 hover:bg-neutral-200 transition disabled:opacity-50 min-w-[90px]"
-            >
-              {loading ? 'Asking...' : 'Ask AI'}
-            </button>
-          </form>
 
-          {/* Quick templates */}
-          <div className="flex flex-wrap gap-2 mt-4">
-            <button
-              onClick={() => handleQuery('Hire a Senior React Developer for our SaaS startup')}
-              className="rounded-full border border-neutral-800 bg-neutral-950 px-3.5 py-1 text-xs text-neutral-400 hover:border-neutral-700 hover:text-neutral-200"
-            >
-              🚀 Hire React Dev
-            </button>
-            <button
-              onClick={() => handleQuery('Find AI Engineers with LLM experience')}
-              className="rounded-full border border-neutral-800 bg-neutral-950 px-3.5 py-1 text-xs text-neutral-400 hover:border-neutral-700 hover:text-neutral-200"
-            >
-              🤖 Find AI Engineers
-            </button>
-            <button
-              onClick={() => handleQuery('Generate a job description for a Full Stack Developer')}
-              className="rounded-full border border-neutral-800 bg-neutral-950 px-3.5 py-1 text-xs text-neutral-400 hover:border-neutral-700 hover:text-neutral-200"
-            >
-              📝 Generate JD
-            </button>
+        {/* ── Stats Strip ── */}
+        <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {[
+            { label: 'Total JDs Drafted', value: totalDrafted, icon: FileText, color: 'text-blue-400' },
+            { label: 'Pending Approval', value: pendingCount, icon: Clock, color: 'text-amber-400' },
+            { label: 'Approved', value: approvedCount, icon: CheckCircle, color: 'text-green-400' },
+            { label: 'Rejected', value: rejectedCount, icon: X, color: 'text-red-400' },
+          ].map(({ label, value, icon: Icon, color }) => (
+            <div key={label} className="rounded-xl border border-neutral-800 bg-neutral-900/20 p-5 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">{label}</p>
+                <Icon className={`h-4 w-4 ${color}`} />
+              </div>
+              <p className="text-2xl font-bold text-neutral-50">{value}</p>
+            </div>
+          ))}
+        </section>
+
+        {/* ── Approval Queue ── */}
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-500 mb-4 flex items-center gap-2">
+            <Clock className="h-4 w-4 text-amber-400" /> Approval Queue
+          </h2>
+
+          {pendingActions.length === 0 ? (
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-8 flex items-center justify-center gap-3 text-sm text-neutral-500">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              No pending approvals — you're all caught up
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {pendingActions.map((action) => {
+                const parsedTitle = action.draft.split('\n')[0].replace(/^#+\s*/, '') || action.inputMessage || 'Job Description';
+                const preview = action.draft.slice(0, 150);
+                const isExpanded = expandedAssetId === action.id;
+                return (
+                  <div
+                    key={action.id}
+                    className="rounded-xl border border-neutral-800 bg-neutral-900/10 border-l-4 border-l-amber-500/50 overflow-hidden"
+                  >
+                    <div className="p-5 space-y-3">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-bold text-neutral-200 truncate">{parsedTitle}</h4>
+                          <p className="text-xs text-neutral-500 mt-0.5 italic">Prompt: "{action.inputMessage}"</p>
+                        </div>
+                        <span className="text-[10px] text-neutral-500 whitespace-nowrap shrink-0">
+                          {new Date(action.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+
+                      {/* Draft preview */}
+                      <div className="text-xs text-neutral-400 leading-relaxed bg-neutral-950/40 rounded-lg px-4 py-3 border border-neutral-900">
+                        {isExpanded ? action.draft : `${preview}${action.draft.length > 150 ? '…' : ''}`}
+                      </div>
+
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <button
+                          onClick={() => setExpandedAssetId(isExpanded ? null : action.id)}
+                          className="flex items-center gap-1 text-xs text-neutral-500 hover:text-neutral-300 transition"
+                        >
+                          {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                          {isExpanded ? 'Collapse Draft' : 'View Full Draft'}
+                        </button>
+
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleUpdateStatus(action.id, 'approved')}
+                            className="rounded-lg bg-neutral-100 px-3.5 py-1.5 text-xs font-bold text-neutral-950 hover:bg-neutral-200 transition"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleUpdateStatus(action.id, 'rejected')}
+                            className="rounded-lg border border-neutral-800 bg-transparent px-3.5 py-1.5 text-xs font-semibold text-neutral-400 hover:bg-neutral-900 transition"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* ── Pipeline Overview (all statuses) ── */}
+        <section>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-500 mb-4">
+            💼 Pipeline Overview
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {actions.map((job) => {
+              const parsedTitle = job.draft.split('\n')[0].replace(/^#+\s*/, '') || 'Hiring Request';
+              return (
+                <div key={job.id} className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5 space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className={`rounded px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${statusBadgeClasses[job.status] || 'bg-neutral-800 text-neutral-400'}`}>
+                        {job.status}
+                      </span>
+                      <span className="text-[10px] text-neutral-500">
+                        {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : '—'}
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold text-neutral-250 mt-2 truncate">{parsedTitle}</h3>
+                    <p className="text-[10px] text-neutral-500 mt-1">1 JD draft generated</p>
+                  </div>
+                </div>
+              );
+            })}
+            {actions.length === 0 && (
+              <div className="col-span-3 rounded-xl border border-neutral-800 bg-neutral-900/10 p-6 text-center text-sm text-neutral-500">
+                No openings on record. Generate a job description via <Link href="/oni" className="text-neutral-300 underline">Oni</Link>.
+              </div>
+            )}
           </div>
         </section>
 
-        {error && (
-          <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
-            {error}
-          </div>
-        )}
+        {/* ── Full History (audit trail, expand inline) ── */}
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-500">
+            📋 Full History
+          </h2>
+          {actions.length === 0 ? (
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-6 text-center text-sm text-neutral-500">
+              No generated assets found. Ask the agent via <Link href="/oni" className="text-neutral-300 underline">Oni</Link>.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {actions.map((asset) => {
+                const isExpanded = expandedAssetId === asset.id;
+                const parsedTitle = asset.draft.split('\n')[0].replace(/^#+\s*/, '') || 'Job Specification';
+                return (
+                  <div key={asset.id} className="rounded-xl border border-neutral-800 bg-neutral-900/10 hover:border-neutral-750 transition overflow-hidden">
+                    <div
+                      onClick={() => setExpandedAssetId(isExpanded ? null : asset.id)}
+                      className="p-5 flex items-center justify-between cursor-pointer"
+                    >
+                      <div className="min-w-0">
+                        <h4 className="text-sm font-bold text-neutral-200 truncate">{parsedTitle}</h4>
+                        <p className="text-xs text-neutral-500 mt-1 truncate">Prompt: "{asset.inputMessage}"</p>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0 ml-4">
+                        <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${statusBadgeClasses[asset.status] || 'bg-neutral-800 text-neutral-400'}`}>
+                          {asset.status}
+                        </span>
+                        <span className="text-xs text-neutral-500">
+                          {asset.createdAt ? new Date(asset.createdAt).toLocaleDateString() : '—'}
+                        </span>
+                        {isExpanded ? <ChevronUp className="h-4 w-4 text-neutral-500" /> : <ChevronDown className="h-4 w-4 text-neutral-500" />}
+                      </div>
+                    </div>
 
-        {loading && (
-          <div className="animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/40 p-6 flex items-center justify-center py-10">
-            <div className="text-center space-y-2">
-              <p className="text-sm font-medium text-neutral-300">Searching platforms & matching resumes...</p>
-              <p className="text-xs text-neutral-500">Classification routed to Hiring Agent</p>
-            </div>
-          </div>
-        )}
+                    {isExpanded && (
+                      <div className="px-5 pb-5 pt-2 border-t border-neutral-850 space-y-4 animate-in fade-in duration-200">
+                        <div className="whitespace-pre-line text-sm leading-relaxed text-neutral-350 bg-neutral-950/45 p-4 rounded-xl border border-neutral-900 font-mono">
+                          {asset.draft}
+                        </div>
 
-        {/* Recent generation match response box */}
-        {actions.length > 0 && actions[0].status === 'pending' && (
-          <div className="rounded-xl border border-neutral-800 bg-neutral-900/25 p-6 space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                Latest Draft response
-              </span>
-              <span className="text-xs text-neutral-500">{new Date(actions[0].createdAt).toLocaleDateString()}</span>
-            </div>
-            <p className="text-xs italic text-neutral-500">Prompt: "{actions[0].inputMessage}"</p>
-            <div className="whitespace-pre-line text-sm leading-relaxed text-neutral-300 bg-neutral-950/45 p-4 rounded-xl border border-neutral-900 font-mono">
-              {actions[0].draft}
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleUpdateStatus(actions[0].id, 'approved')}
-                className="rounded-lg bg-neutral-100 px-3.5 py-1.5 text-xs font-semibold text-neutral-950 hover:bg-neutral-200 transition"
-              >
-                Approve JD
-              </button>
-              <button
-                onClick={() => handleUpdateStatus(actions[0].id, 'rejected')}
-                className="rounded-lg border border-neutral-800 bg-transparent px-3.5 py-1.5 text-xs font-semibold text-neutral-400 hover:bg-neutral-900 transition"
-              >
-                Reject
-              </button>
-            </div>
-          </div>
-        )}
+                        {/* Screening questions generation */}
+                        <div className="space-y-3 pt-2">
+                          <button
+                            onClick={() => handleGenerateQuestions(asset.id, asset.draft)}
+                            disabled={loadingQuestions[asset.id]}
+                            className="flex items-center gap-1.5 rounded-lg border border-neutral-850 bg-neutral-900/50 hover:bg-neutral-800 px-3.5 py-1.5 text-xs text-neutral-350 transition disabled:opacity-50"
+                          >
+                            <HelpCircle className="h-4 w-4" />
+                            {loadingQuestions[asset.id] ? 'Generating questions...' : 'Generate Screening Questions'}
+                          </button>
 
-        {/* ── Simulated Candidate Matches with warning tags ── */}
-        {showResults && candidates.length > 0 && (
+                          {screeningQuestions[asset.id] && (
+                            <div className="rounded-xl border border-neutral-800 bg-neutral-950/20 p-4 space-y-2">
+                              <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Suggested Screening Questions</div>
+                              <ol className="list-decimal pl-5 space-y-1.5 text-xs text-neutral-350 leading-relaxed">
+                                {screeningQuestions[asset.id].map((q, idx) => (
+                                  <li key={idx}>{q}</li>
+                                ))}
+                              </ol>
+                            </div>
+                          )}
+                        </div>
+
+                        {asset.status === 'pending' && (
+                          <div className="flex gap-2 pt-2 border-t border-neutral-850">
+                            <button
+                              onClick={() => handleUpdateStatus(asset.id, 'approved')}
+                              className="rounded bg-neutral-100 px-3.5 py-1.5 text-xs font-bold text-neutral-950 hover:bg-neutral-200 transition"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleUpdateStatus(asset.id, 'rejected')}
+                              className="rounded border border-neutral-800 bg-transparent px-3.5 py-1.5 text-xs font-medium text-neutral-400 hover:bg-neutral-900 transition"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* ── Simulated Matches (below Full History) ── */}
+        {candidates.length > 0 && (
           <section className="rounded-xl border border-neutral-800 bg-neutral-900/10 overflow-hidden">
             <div className="flex border-b border-neutral-800 bg-neutral-950/40 px-6 justify-between items-center pr-6">
               <div className="flex">
@@ -340,7 +403,10 @@ export default function HiringPage() {
                   </button>
                 ))}
               </div>
-              <span className="flex items-center gap-1.5 rounded-lg bg-neutral-900 px-2 py-1 text-[10px] font-medium text-neutral-400 border border-neutral-800" title="These candidates are simulated placeholders generated by the LLM.">
+              <span
+                className="flex items-center gap-1.5 rounded-lg bg-neutral-900 px-2 py-1 text-[10px] font-medium text-neutral-400 border border-neutral-800"
+                title="These candidates are simulated placeholders generated by the LLM."
+              >
                 <Info className="h-3.5 w-3.5 text-neutral-400" /> Demo data — awaiting LinkedIn API partnership
               </span>
             </div>
@@ -352,10 +418,7 @@ export default function HiringPage() {
                     {candidates.map((cand, idx) => (
                       <div
                         key={idx}
-                        onClick={() => {
-                          setSelectedCandidate(cand);
-                          setProfileTab('ai');
-                        }}
+                        onClick={() => { setSelectedCandidate(cand); setProfileTab('ai'); }}
                         className="flex items-center justify-between rounded-xl border border-neutral-800 bg-neutral-950/40 p-4 hover:border-neutral-700 transition cursor-pointer"
                       >
                         <div className="flex items-center gap-4">
@@ -369,7 +432,6 @@ export default function HiringPage() {
                             </p>
                           </div>
                         </div>
-
                         <div className="flex items-center gap-4">
                           <div className={`h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold border ${
                             cand.matchScore >= 90
@@ -404,9 +466,7 @@ export default function HiringPage() {
                                 AI RECOMMENDED
                               </span>
                             </div>
-                            <p className="text-xs text-neutral-500 mt-1">
-                              {c.role} · {c.currentCompany}
-                            </p>
+                            <p className="text-xs text-neutral-500 mt-1">{c.role} · {c.currentCompany}</p>
                           </div>
                         </div>
                         <div className="text-right">
@@ -414,12 +474,9 @@ export default function HiringPage() {
                           <div className="text-xs text-neutral-500 mt-0.5">{c.availability}</div>
                         </div>
                       </div>
-
-                      <div className="space-y-4">
-                        <div className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-4">
-                          <h4 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">AI Assessment</h4>
-                          <p className="text-sm leading-relaxed text-neutral-300">{c.aiSummary}</p>
-                        </div>
+                      <div className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-4">
+                        <h4 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">AI Assessment</h4>
+                        <p className="text-sm leading-relaxed text-neutral-300">{c.aiSummary}</p>
                       </div>
                     </div>
                   ))}
@@ -443,9 +500,7 @@ export default function HiringPage() {
                       {candidates.map((cand, idx) => (
                         <tr key={idx} className="hover:bg-neutral-900/10">
                           <td className="p-3 font-semibold text-neutral-200">{cand.name}</td>
-                          <td className="p-3">
-                            <span className="text-green-400 font-bold">{cand.matchScore}%</span>
-                          </td>
+                          <td className="p-3"><span className="text-green-400 font-bold">{cand.matchScore}%</span></td>
                           <td className="p-3 text-neutral-400">{cand.experience}</td>
                           <td className="p-3 text-neutral-400 truncate max-w-[200px]">{cand.skills.join(', ')}</td>
                           <td className="p-3 text-neutral-400">{cand.availability}</td>
@@ -480,129 +535,12 @@ export default function HiringPage() {
           </section>
         )}
 
-        {/* ── Active Jobs Section (Real openings) ── */}
-        <section>
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-500 mb-4">
-            💼 Current Openings
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {actions.map((job) => {
-              const parsedTitle = job.draft.split('\n')[0].replace(/^#+\s*/, '') || 'Hiring Request';
-              return (
-                <div key={job.id} className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5 space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <span className={`rounded px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${statusBadgeClasses[job.status] || 'bg-neutral-800 text-neutral-400'}`}>
-                        {job.status}
-                      </span>
-                      <span className="text-[10px] text-neutral-500">{new Date(job.createdAt).toLocaleDateString()}</span>
-                    </div>
-                    <h3 className="text-sm font-bold text-neutral-250 mt-2 truncate">{parsedTitle}</h3>
-                    <p className="text-[10px] text-neutral-500 mt-1">1 JD draft generated</p>
-                  </div>
-                </div>
-              );
-            })}
-            {actions.length === 0 && (
-              <div className="col-span-3 rounded-xl border border-neutral-800 bg-neutral-900/10 p-6 text-center text-sm text-neutral-500">
-                No active openings on record. Generate a job description to populate.
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* ── Generated Hiring Assets (Clickable detail list) ── */}
-        <section className="space-y-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-500">
-            📋 Generated Hiring Assets
-          </h2>
-          {actions.length === 0 ? (
-            <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-6 text-center text-sm text-neutral-500">
-              No generated assets found. Ask the agent above.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {actions.map((asset) => {
-                const isExpanded = expandedAssetId === asset.id;
-                const parsedTitle = asset.draft.split('\n')[0].replace(/^#+\s*/, '') || 'Job Specification';
-                return (
-                  <div key={asset.id} className="rounded-xl border border-neutral-800 bg-neutral-900/10 hover:border-neutral-750 transition overflow-hidden">
-                    <div 
-                      onClick={() => setExpandedAssetId(isExpanded ? null : asset.id)}
-                      className="p-5 flex items-center justify-between cursor-pointer"
-                    >
-                      <div>
-                        <h4 className="text-sm font-bold text-neutral-200">{parsedTitle}</h4>
-                        <p className="text-xs text-neutral-500 mt-1">Prompt: "{asset.inputMessage}"</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${statusBadgeClasses[asset.status]}`}>
-                          {asset.status}
-                        </span>
-                        <span className="text-xs text-neutral-500">{new Date(asset.createdAt).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-
-                    {isExpanded && (
-                      <div className="px-5 pb-5 pt-2 border-t border-neutral-850 space-y-4 animate-in fade-in duration-200">
-                        <div className="whitespace-pre-line text-sm leading-relaxed text-neutral-350 bg-neutral-950/45 p-4 rounded-xl border border-neutral-900 font-mono">
-                          {asset.draft}
-                        </div>
-
-                        {/* Interactive questions generation */}
-                        <div className="space-y-3 pt-2">
-                          <button
-                            onClick={() => handleGenerateQuestions(asset.id, asset.draft)}
-                            disabled={loadingQuestions[asset.id]}
-                            className="flex items-center gap-1.5 rounded-lg border border-neutral-850 bg-neutral-900/50 hover:bg-neutral-800 px-3.5 py-1.5 text-xs text-neutral-350 transition disabled:opacity-50"
-                          >
-                            <HelpCircle className="h-4 w-4" />
-                            {loadingQuestions[asset.id] ? 'Generating questions...' : 'Generate Screening Questions'}
-                          </button>
-
-                          {screeningQuestions[asset.id] && (
-                            <div className="rounded-xl border border-neutral-800 bg-neutral-950/20 p-4 space-y-2">
-                              <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Suggested Screening Questions</div>
-                              <ol className="list-decimal pl-4.5 space-y-1.5 text-xs text-neutral-350 leading-relaxed">
-                                {screeningQuestions[asset.id].map((q, idx) => (
-                                  <li key={idx}>{q}</li>
-                                ))}
-                              </ol>
-                            </div>
-                          )}
-                        </div>
-
-                        {asset.status === 'pending' && (
-                          <div className="flex gap-2 pt-2 border-t border-neutral-850">
-                            <button
-                              onClick={() => handleUpdateStatus(asset.id, 'approved')}
-                              className="rounded bg-neutral-100 px-3.5 py-1.5 text-xs font-bold text-neutral-950 hover:bg-neutral-200 transition"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => handleUpdateStatus(asset.id, 'rejected')}
-                              className="rounded border border-neutral-800 bg-transparent px-3.5 py-1.5 text-xs font-medium text-neutral-400 hover:bg-neutral-900 transition"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
       </div>
 
       {/* ── Slide-Over Candidate Profile Drawer ── */}
       {selectedCandidate && (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm">
           <div className="relative flex h-full w-full max-w-lg flex-col bg-neutral-950 border-l border-neutral-800 p-8 shadow-2xl animate-in slide-in-from-right duration-200">
-            {/* Drawer Header */}
             <div className="flex items-center justify-between border-b border-neutral-800 pb-4 mb-6">
               <h3 className="text-base font-bold text-neutral-100 flex items-center gap-2">
                 <span>👤</span> Candidate Profile
@@ -616,7 +554,6 @@ export default function HiringPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-6">
-              {/* Profile Hero */}
               <div className="flex items-center gap-4">
                 <div className="h-16 w-16 rounded-xl bg-neutral-800 border border-neutral-750 flex items-center justify-center text-lg font-bold text-neutral-350">
                   {getInitials(selectedCandidate.name)}
@@ -637,12 +574,8 @@ export default function HiringPage() {
                 </div>
               </div>
 
-              {/* Sub Navigation Tabs */}
               <div className="flex border-b border-neutral-800">
-                {[
-                  { id: 'ai', label: 'AI Analysis' },
-                  { id: 'skills', label: 'Skills' }
-                ].map((tab) => (
+                {[{ id: 'ai', label: 'AI Analysis' }, { id: 'skills', label: 'Skills' }].map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setProfileTab(tab.id as any)}
@@ -657,7 +590,6 @@ export default function HiringPage() {
                 ))}
               </div>
 
-              {/* Drawer Tab Content */}
               <div>
                 {profileTab === 'ai' && (
                   <div className="space-y-5">
@@ -665,7 +597,6 @@ export default function HiringPage() {
                       <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">AI Summary</div>
                       <p className="text-xs leading-relaxed text-neutral-350">{selectedCandidate.aiSummary}</p>
                     </div>
-
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="rounded-xl border border-neutral-800 bg-neutral-950/20 p-4 text-center">
                         <div className="text-xs font-bold text-neutral-200">{selectedCandidate.hiringRisk}</div>
