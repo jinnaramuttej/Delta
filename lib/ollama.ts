@@ -16,6 +16,7 @@ export async function callOllama(
         { role: 'user', content: userMessage },
       ],
       stream: false,
+      think: false,
       options: {
         temperature: 0.2,
         num_predict: maxTokens,
@@ -29,5 +30,14 @@ export async function callOllama(
 
   const data = await response.json();
   console.log('[ollama] Raw response:', JSON.stringify(data));
-  return data.message.content as string;
+
+  const content = data.message?.content || '';
+  const thinking = data.message?.thinking || '';
+
+  if (!content && thinking) {
+    console.warn('[ollama] Empty content returned, falling back to thinking field.');
+    return thinking as string;
+  }
+
+  return content as string;
 }
