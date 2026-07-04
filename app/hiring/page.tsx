@@ -170,21 +170,74 @@ export default function HiringPage() {
       <div className="p-8 max-w-5xl mx-auto w-full space-y-10">
 
         {/* ── Stats Strip ── */}
-        <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {[
-            { label: 'Total JDs Drafted', value: totalDrafted, icon: FileText, color: 'text-blue-400' },
-            { label: 'Pending Approval', value: pendingCount, icon: Clock, color: 'text-amber-400' },
-            { label: 'Approved', value: approvedCount, icon: CheckCircle, color: 'text-green-400' },
-            { label: 'Rejected', value: rejectedCount, icon: X, color: 'text-red-400' },
-          ].map(({ label, value, icon: Icon, color }) => (
-            <div key={label} className="rounded-xl border border-neutral-800 bg-neutral-900/20 p-5 space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">{label}</p>
-                <Icon className={`h-4 w-4 ${color}`} />
+        <section className="grid gap-6 md:grid-cols-3">
+          <div className="md:col-span-2 grid grid-cols-2 gap-4">
+            {[
+              { label: 'Total JDs Drafted', value: totalDrafted, icon: FileText, color: 'text-blue-400' },
+              { label: 'Pending Approval', value: pendingCount, icon: Clock, color: 'text-amber-400' },
+              { label: 'Approved', value: approvedCount, icon: CheckCircle, color: 'text-green-400' },
+              { label: 'Rejected', value: rejectedCount, icon: X, color: 'text-red-400' },
+            ].map(({ label, value, icon: Icon, color }) => (
+              <div key={label} className="rounded-xl border border-neutral-800 bg-neutral-900/20 p-5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">{label}</p>
+                  <Icon className={`h-4 w-4 ${color}`} />
+                </div>
+                <p className="text-2xl font-bold text-neutral-50">{value}</p>
               </div>
-              <p className="text-2xl font-bold text-neutral-50">{value}</p>
+            ))}
+          </div>
+
+          {/* Visual Distribution Chart Card */}
+          <div className="rounded-xl border border-neutral-800 bg-neutral-900/20 p-5 flex flex-col justify-between space-y-4">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Pipeline Status Ratio</p>
+              <h3 className="text-xs text-neutral-400 mt-1">Approval queue breakdown</h3>
             </div>
-          ))}
+            
+            <div className="space-y-3">
+              {/* Stacked Percentage bar */}
+              <div className="w-full h-3 rounded-full bg-neutral-850 overflow-hidden flex">
+                <div 
+                  style={{ width: `${totalDrafted > 0 ? (approvedCount / totalDrafted) * 100 : 0}%` }} 
+                  className="bg-green-500 h-full transition-all duration-500" 
+                  title={`Approved: ${approvedCount}`} 
+                />
+                <div 
+                  style={{ width: `${totalDrafted > 0 ? (pendingCount / totalDrafted) * 100 : 0}%` }} 
+                  className="bg-amber-500 h-full transition-all duration-500" 
+                  title={`Pending: ${pendingCount}`} 
+                />
+                <div 
+                  style={{ width: `${totalDrafted > 0 ? (rejectedCount / totalDrafted) * 100 : 0}%` }} 
+                  className="bg-red-500 h-full transition-all duration-500" 
+                  title={`Rejected: ${rejectedCount}`} 
+                />
+              </div>
+
+              {/* Legend with percentages */}
+              <div className="grid grid-cols-3 gap-1.5 text-[10px]">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-green-500" />
+                  <span className="text-neutral-300">
+                    Appr ({totalDrafted > 0 ? Math.round((approvedCount / totalDrafted) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-500" />
+                  <span className="text-neutral-300">
+                    Pend ({totalDrafted > 0 ? Math.round((pendingCount / totalDrafted) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-red-500" />
+                  <span className="text-neutral-300">
+                    Rej ({totalDrafted > 0 ? Math.round((rejectedCount / totalDrafted) * 100) : 0}%)
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* ── Approval Queue ── */}
