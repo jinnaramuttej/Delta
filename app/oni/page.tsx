@@ -134,6 +134,7 @@ export default function OniPage() {
                 candidatesList = parsed;
               }
             } catch (jsonErr) {
+              console.error("[oni] JSON parsing failed for raw Ollama response. Raw Output was:", rawText);
               console.warn("JSON parse failed, loading default fallback profiles:", jsonErr);
               candidatesList = [
                 {
