@@ -389,7 +389,10 @@ export default function FinancePage() {
         <div className="grid gap-6 md:grid-cols-2">
           {/* Table 1: Compliance tracker */}
           <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5 space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400">Compliance & Filings</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400">Compliance & Filings</h3>
+              <span className="text-[9px] text-neutral-500 font-medium bg-neutral-850 px-2 py-0.5 rounded border border-neutral-800">Illustrative data</span>
+            </div>
             <div className="divide-y divide-neutral-850">
               {COMPLIANCE_ITEMS.map((item, i) => (
                 <div key={i} className="flex items-center justify-between py-2.5">
@@ -407,7 +410,10 @@ export default function FinancePage() {
 
           {/* Table 2: Budget Vs Actuals */}
           <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5 space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400">Budget vs Actuals</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400">Budget vs Actuals</h3>
+              <span className="text-[9px] text-neutral-500 font-medium bg-neutral-850 px-2 py-0.5 rounded border border-neutral-800">Illustrative data</span>
+            </div>
             <div className="divide-y divide-neutral-850">
               {BUDGETS.map((item, i) => {
                 const over = item.actual > item.budget;
