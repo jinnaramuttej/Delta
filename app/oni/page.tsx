@@ -127,11 +127,31 @@ export default function OniPage() {
 
           if (ollamaRes.ok) {
             const rawText = (await ollamaRes.json()).response;
-            const cleanedText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+
+            // Step 1: Strip all markdown fence variants (```json, ```, with any surrounding whitespace)
+            const stripped = rawText
+              .replace(/```json\s*/gi, '')
+              .replace(/```\s*/g, '')
+              .trim();
+
+            // Step 2: Extract the first [...] array block — ignore any trailing prose
+            const arrayMatch = stripped.match(/\[[\s\S]*\]/);
+            const cleanedText = arrayMatch ? arrayMatch[0] : stripped;
+
+            // Step 3: Attempt repair of common model hallucinations before parsing
+            // e.g. "name0:" → "name:" (digit suffix on key names)
+            const repairedText = cleanedText
+              .replace(/"name\d+"?\s*:/g, '"name":')
+              .replace(/"role\d+"?\s*:/g, '"role":')
+              .replace(/"skills\d+"?\s*:/g, '"skills":');
+
             try {
-              const parsed = JSON.parse(cleanedText);
+              const parsed = JSON.parse(repairedText);
               if (Array.isArray(parsed)) {
-                candidatesList = parsed;
+                // Filter to only well-formed candidates
+                candidatesList = parsed.filter(
+                  (c: Candidate) => typeof c?.name === 'string' && c.name.trim().length > 0
+                );
               }
             } catch (jsonErr) {
               console.error("[oni] JSON parsing failed for raw Ollama response. Raw Output was:", rawText);
