@@ -18,6 +18,7 @@ export const metadata: Metadata = {
 };
 
 import Sidebar from "@/components/Sidebar";
+import PageAnimate from "@/components/PageAnimate";
 
 export default function RootLayout({
   children,
@@ -31,9 +32,9 @@ export default function RootLayout({
     >
       <body className="h-screen flex overflow-hidden bg-neutral-950 text-neutral-100 font-sans">
         <Sidebar />
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <PageAnimate>
           {children}
-        </div>
+        </PageAnimate>
       </body>
     </html>
   );
