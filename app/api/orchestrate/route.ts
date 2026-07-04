@@ -4,23 +4,27 @@ import { supabase } from '@/lib/supabase';
 
 const CLASSIFIER_SYSTEM_PROMPT =
   'You are a routing classifier for a startup founder assistant. ' +
-  'Classify the founder\'s message into exactly one of: finance, hiring, legal, gtm. ' +
+  'Classify the founder\'s message into exactly one of: finance, hiring, legal. ' +
   'Also extract any relevant details (tech stack, role, amount, topic) as a short string. ' +
-  'Return ONLY valid JSON in this exact shape: {"agent": "finance|hiring|legal|gtm", "extractedContext": "short string"}. ' +
+  'Return ONLY valid JSON in this exact shape: {"agent": "finance|hiring|legal", "extractedContext": "short string"}. ' +
   'No explanation, no markdown, no extra text. ' +
-  'Even for greetings or unclear messages, you MUST pick the closest matching agent — never return an empty string for agent. Default to \'gtm\' if truly unclear.';
+  'Even for greetings or unclear messages, you MUST pick the closest matching agent — never return an empty string for agent. Default to \'legal\' if truly unclear.';
 
 type ClassifierResult = {
-  agent: 'finance' | 'hiring' | 'legal' | 'gtm';
+  agent: 'finance' | 'hiring' | 'legal';
   extractedContext: string;
 };
 
 function stripMarkdownFences(text: string): string {
   // Remove ```json ... ``` or ``` ... ``` wrappers
-  return text
+  const stripped = text
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/\s*```$/, '')
     .trim();
+
+  // Extract the first complete {...} JSON object, discarding any trailing text/punctuation
+  const jsonMatch = stripped.match(/\{[\s\S]*\}/);
+  return jsonMatch ? jsonMatch[0] : stripped;
 }
 
 export async function POST(req: NextRequest) {
@@ -44,17 +48,18 @@ export async function POST(req: NextRequest) {
     let classification: ClassifierResult;
     try {
       const cleaned = stripMarkdownFences(rawClassification);
+      console.log('[orchestrate] Cleaned classifier output for parse:', JSON.stringify(cleaned));
       classification = JSON.parse(cleaned) as ClassifierResult;
     } catch {
-      console.warn('[orchestrate] JSON parse failed, defaulting to gtm. Raw:', rawClassification);
-      classification = { agent: 'gtm', extractedContext: message };
+      console.warn('[orchestrate] JSON parse failed, defaulting to legal. Raw:', rawClassification);
+      classification = { agent: 'legal', extractedContext: message };
     }
 
-    // Fallback: If agent is empty, undefined, or invalid, default to 'gtm'
-    const validAgents = ['finance', 'hiring', 'legal', 'gtm'];
+    // Fallback: If agent is empty, undefined, or invalid, default to 'legal'
+    const validAgents = ['finance', 'hiring', 'legal'];
     if (!classification.agent || !validAgents.includes(classification.agent)) {
-      console.warn(`[orchestrate] Invalid classification agent "${classification.agent}", defaulting to "gtm"`);
-      classification.agent = 'gtm';
+      console.warn(`[orchestrate] Invalid classification agent "${classification.agent}", defaulting to "legal"`);
+      classification.agent = 'legal';
     }
 
     console.log('[orchestrate] Classification result:', classification);
