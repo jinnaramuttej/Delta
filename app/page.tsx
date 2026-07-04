@@ -95,19 +95,59 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="space-y-8">
-            {/* Quick Analytics Stats */}
+            {/* Quick Analytics Stats & Simple Mini Graphs */}
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5">
                 <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Hiring Pipeline</p>
-                <p className="mt-2 text-2xl font-bold text-neutral-100">4 Active Roles</p>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <p className="text-2xl font-bold text-neutral-100">4</p>
+                  <p className="text-xs text-neutral-500 font-medium">Active Roles</p>
+                </div>
+                {/* Visual Pipeline Bar chart */}
+                <div className="mt-4 flex gap-1 items-end h-8">
+                  <div className="w-full bg-blue-500/10 rounded-t h-1/3 hover:bg-blue-500/35 transition" />
+                  <div className="w-full bg-blue-500/15 rounded-t h-2/3 hover:bg-blue-500/35 transition" />
+                  <div className="w-full bg-blue-500/20 rounded-t h-1/2 hover:bg-blue-500/35 transition" />
+                  <div className="w-full bg-blue-500 rounded-t h-full hover:bg-blue-500/80 transition" />
+                </div>
               </div>
+
               <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5">
                 <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Monthly Burn</p>
-                <p className="mt-2 text-2xl font-bold text-neutral-100">$18,400</p>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <p className="text-2xl font-bold text-neutral-100">$18,400</p>
+                  <p className="text-xs text-green-400 font-medium">-4.2% MoM</p>
+                </div>
+                {/* SVG Mini Area Graph */}
+                <div className="mt-4 h-8 w-full">
+                  <svg className="w-full h-full" viewBox="0 0 100 10" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="burnGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#22c55e" stopOpacity="0.4" />
+                        <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M0,10 L0,8 L20,6 L40,9 L60,4 L80,5 L100,2 L100,10 Z" fill="url(#burnGrad)" />
+                    <path d="M0,8 L20,6 L40,9 L60,4 L80,5 L100,2" fill="none" stroke="#22c55e" strokeWidth="0.8" />
+                  </svg>
+                </div>
               </div>
+
               <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5">
                 <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Runway Remaining</p>
-                <p className="mt-2 text-2xl font-bold text-neutral-100">14.2 Months</p>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <p className="text-2xl font-bold text-neutral-100">14.2</p>
+                  <p className="text-xs text-neutral-500 font-medium">Months</p>
+                </div>
+                {/* Runway Progress Meter */}
+                <div className="mt-5 w-full bg-neutral-850 rounded-full h-1.5 overflow-hidden">
+                  <div className="bg-amber-500 h-full rounded-full w-[70%]" />
+                </div>
+                <div className="flex justify-between items-center mt-1.5 text-[9px] text-neutral-500 font-medium">
+                  <span>0m</span>
+                  <span>Critical (6m)</span>
+                  <span>Goal (18m)</span>
+                </div>
               </div>
             </div>
 
