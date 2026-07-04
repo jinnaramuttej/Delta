@@ -2,9 +2,21 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Send, Sparkles, Paperclip, Mic, ArrowUp, ImageIcon, DollarSign, FileText, Megaphone, Sun } from 'lucide-react';
+import { Send, Sparkles, Paperclip, Mic, ArrowUp, ImageIcon, DollarSign, FileText, Megaphone, Sun, Info, X } from 'lucide-react';
 
 const FOUNDER_ID = '8bbb8137-73b7-4e07-b154-6d0b8034532f';
+
+type Candidate = {
+  name: string;
+  role: string;
+  experience: string;
+  matchScore: number;
+  skills: string[];
+  availability: string;
+  currentCompany: string;
+  aiSummary: string;
+  hiringRisk: string;
+};
 
 type Message = {
   id: string;
@@ -13,6 +25,8 @@ type Message = {
   agentUsed?: 'hiring' | 'finance' | 'legal' | 'gtm';
   requiresApproval?: boolean;
   status?: string;
+  candidatesList?: Candidate[];
+  actionId?: string;
 };
 
 export default function OniPage() {
@@ -22,6 +36,7 @@ export default function OniPage() {
   const [hasStarted, setHasStarted] = useState(false);
   const [founderName, setFounderName] = useState('');
   const [greeting, setGreeting] = useState('Hello');
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const badgeClasses: Record<string, string> = {
@@ -79,6 +94,50 @@ export default function OniPage() {
 
       const data = await res.json();
       
+      // If it classified as hiring, fetch matching candidates from Ollama dynamically
+      let candidatesList: Candidate[] = [];
+      let actionId = '';
+
+      // Find the created agent action row to get the correct UUID for approval updates
+      const { data: recentActions } = await supabase
+        .from('agent_actions')
+        .select('id')
+        .eq('founder_id', FOUNDER_ID)
+        .eq('agent_type', data.agentUsed || 'hiring')
+        .order('id', { ascending: false })
+        .limit(1);
+
+      if (recentActions && recentActions.length > 0) {
+        actionId = recentActions[0].id;
+      }
+
+      if (data.agentUsed === 'hiring') {
+        try {
+          const modelName = process.env.NEXT_PUBLIC_OLLAMA_MODEL || 'qwen3:8b';
+          const ollamaRes = await fetch('http://localhost:11434/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: modelName,
+              prompt: `/no_think Generate exactly 3 realistic but clearly fictional example candidate profiles for this hiring role: "${queryText}". Return ONLY a raw JSON array matching this typescript shape: Array<{ name: string, role: string, experience: string, matchScore: number, skills: string[], availability: string, currentCompany: string, aiSummary: string, hiringRisk: 'Low' | 'Medium' | 'High' }>. Do not include markdown code block formatting or explanation, just the raw JSON.`,
+              stream: false,
+              options: { temperature: 0.1 },
+            })
+          });
+
+          if (ollamaRes.ok) {
+            const rawText = (await ollamaRes.json()).response;
+            const cleanedText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const parsed = JSON.parse(cleanedText);
+            if (Array.isArray(parsed)) {
+              candidatesList = parsed;
+            }
+          }
+        } catch (simErr) {
+          console.error("Failed to generate dynamic simulator matches in Oni Page:", simErr);
+        }
+      }
+
       setMessages((prev) => [
         ...prev,
         {
@@ -88,6 +147,8 @@ export default function OniPage() {
           agentUsed: data.agentUsed,
           requiresApproval: data.requiresApproval,
           status: data.status || 'pending',
+          candidatesList: candidatesList.length > 0 ? candidatesList : undefined,
+          actionId: actionId || data.id,
         },
       ]);
     } catch (err) {
@@ -105,16 +166,17 @@ export default function OniPage() {
     handleQuery(input);
   };
 
-  const handleUpdateStatus = async (id: string, nextStatus: 'approved' | 'rejected') => {
+  const handleUpdateStatus = async (messageId: string, actionId: string, nextStatus: 'approved' | 'rejected') => {
+    const targetId = actionId || messageId;
     try {
       const { error } = await supabase
         .from('agent_actions')
         .update({ status: nextStatus, approved: nextStatus === 'approved' })
-        .eq('id', id);
+        .eq('id', targetId);
 
       if (!error) {
         setMessages((prev) =>
-          prev.map((m) => (m.id === id ? { ...m, status: nextStatus } : m))
+          prev.map((m) => (m.id === messageId || m.actionId === targetId ? { ...m, status: nextStatus } : m))
         );
       }
     } catch (err: any) {
@@ -159,13 +221,13 @@ export default function OniPage() {
                           {msg.status === 'pending' ? (
                             <>
                               <button
-                                onClick={() => handleUpdateStatus(msg.id, 'approved')}
+                                onClick={() => handleUpdateStatus(msg.id, msg.actionId || '', 'approved')}
                                 className="rounded bg-neutral-100 px-3 py-1 text-xs font-bold text-neutral-950 hover:bg-neutral-200 transition"
                               >
                                 Approve
                               </button>
                               <button
-                                onClick={() => handleUpdateStatus(msg.id, 'rejected')}
+                                onClick={() => handleUpdateStatus(msg.id, msg.actionId || '', 'rejected')}
                                 className="rounded border border-neutral-800 bg-transparent px-3.5 py-1 text-xs font-medium text-neutral-400 hover:bg-neutral-900 transition"
                               >
                                 Reject
@@ -176,6 +238,40 @@ export default function OniPage() {
                           ) : (
                             <span className="text-xs font-semibold text-red-400">✗ Rejected</span>
                           )}
+                        </div>
+                      )}
+
+                      {/* Display matched candidate profiles if agent is hiring, and status is approved */}
+                      {msg.agentUsed === 'hiring' && msg.status === 'approved' && msg.candidatesList && (
+                        <div className="mt-4 pt-4 border-t border-neutral-850 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400">Matched Candidates</span>
+                            <span className="flex items-center gap-1 text-[9px] text-neutral-500">
+                              <Info className="h-3 w-3" /> Demo data — awaiting LinkedIn API
+                            </span>
+                          </div>
+                          <div className="grid gap-2">
+                            {msg.candidatesList.map((cand, idx) => (
+                              <div
+                                key={idx}
+                                onClick={() => setSelectedCandidate(cand)}
+                                className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900/50 p-3 hover:border-neutral-750 transition cursor-pointer"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="h-8 w-8 rounded bg-neutral-850 flex items-center justify-center text-xs font-bold text-neutral-400">
+                                    {cand.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <h4 className="text-xs font-semibold text-neutral-200">{cand.name}</h4>
+                                    <p className="text-[10px] text-neutral-500">{cand.role} · {cand.currentCompany}</p>
+                                  </div>
+                                </div>
+                                <span className="text-[10px] font-bold text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full">
+                                  {cand.matchScore}% Match
+                                </span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -305,6 +401,101 @@ export default function OniPage() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* ── Slide-Over Candidate Profile Drawer ── */}
+      {selectedCandidate && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm">
+          <div className="relative flex h-full w-full max-w-lg flex-col bg-neutral-950 border-l border-neutral-800 p-8 shadow-2xl animate-in slide-in-from-right duration-200">
+            {/* Drawer Header */}
+            <div className="flex items-center justify-between border-b border-neutral-800 pb-4 mb-6">
+              <h3 className="text-base font-bold text-neutral-100 flex items-center gap-2">
+                <span>👤</span> Candidate Profile
+              </h3>
+              <button
+                onClick={() => setSelectedCandidate(null)}
+                className="rounded-lg p-1 text-neutral-500 hover:bg-neutral-900 hover:text-neutral-200 transition"
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-6">
+              {/* Profile Hero */}
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-16 rounded-xl bg-neutral-800 border border-neutral-750 flex items-center justify-center text-lg font-bold text-neutral-350">
+                  {selectedCandidate.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-neutral-250">{selectedCandidate.name}</h2>
+                  <p className="text-xs text-neutral-500 mt-1">
+                    {selectedCandidate.role} · {selectedCandidate.currentCompany}
+                  </p>
+                  <div className="flex gap-2 mt-2">
+                    <span className="rounded bg-green-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-green-400 border border-green-500/20">
+                      {selectedCandidate.matchScore}% Match
+                    </span>
+                    <span className="rounded bg-neutral-800 px-2.5 py-0.5 text-[10px] text-neutral-400">
+                      {selectedCandidate.availability}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sub Navigation Tabs */}
+              <div className="flex border-b border-neutral-800">
+                {[{ id: 'ai', label: 'AI Analysis' }, { id: 'skills', label: 'Skills' }].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setProfileTab(tab.id as any)}
+                    className={`flex-1 pb-2 text-xs font-semibold border-b-2 transition ${
+                      profileTab === tab.id
+                        ? 'border-neutral-100 text-neutral-100'
+                        : 'border-transparent text-neutral-500 hover:text-neutral-350'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Drawer Tab Content */}
+              <div className="space-y-4">
+                {profileTab === 'ai' && (
+                  <div className="space-y-5">
+                    <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-4 space-y-2">
+                      <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">AI Summary</div>
+                      <p className="text-xs leading-relaxed text-neutral-350">{selectedCandidate.aiSummary}</p>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-xl border border-neutral-800 bg-neutral-950/20 p-4 text-center">
+                        <div className="text-xs font-bold text-neutral-200">{selectedCandidate.hiringRisk}</div>
+                        <div className="text-[10px] text-neutral-500 mt-1 uppercase tracking-wider">Risk Level</div>
+                      </div>
+                      <div className="rounded-xl border border-neutral-800 bg-neutral-950/20 p-4 text-center">
+                        <div className="text-xs font-bold text-neutral-200">{selectedCandidate.experience}</div>
+                        <div className="text-[10px] text-neutral-500 mt-1 uppercase tracking-wider">Experience</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {profileTab === 'skills' && (
+                  <div>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">Skills Match</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedCandidate.skills.map((s, i) => (
+                        <span key={i} className="rounded bg-green-500/10 px-2.5 py-0.5 text-xs text-green-400 border border-green-500/20">
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
