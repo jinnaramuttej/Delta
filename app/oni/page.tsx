@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Send, Sparkles, Paperclip, Mic, ArrowUp, ImageIcon } from 'lucide-react';
+import { Send, Sparkles, Paperclip, Mic, ArrowUp, ImageIcon, DollarSign, FileText, Megaphone, Sun } from 'lucide-react';
 
 const FOUNDER_ID = '8bbb8137-73b7-4e07-b154-6d0b8034532f';
 
@@ -219,13 +219,14 @@ export default function OniPage() {
       ) : (
         // Empty State: Centered Greeting and Input layout
         <div className="flex-1 flex flex-col items-center justify-center p-8 animate-in fade-in duration-300">
-          <div className="max-w-2xl w-full text-center space-y-8">
-            <h1 className="text-4xl font-extrabold tracking-tight text-neutral-50 mb-2">
-              {greeting},&nbsp;&nbsp;<span className="font-light text-neutral-400">{founderName || 'Founder'}</span>
+          <div className="max-w-xl w-full flex flex-col items-center gap-5">
+            <h1 className="text-4xl font-semibold tracking-tight text-neutral-50 flex items-center justify-center gap-2">
+              <Sun className="h-7 w-7 text-amber-400 shrink-0" />
+              <span>{greeting},</span>&nbsp;&nbsp;<span className="font-light text-neutral-400">{founderName || 'Founder'}</span>
             </h1>
             
-            {/* Input Row - taller vertical padding */}
-            <form onSubmit={handleSubmit} className="flex items-center gap-4 bg-neutral-900 border border-neutral-800 rounded-2xl py-6 px-5 shadow-2xl focus-within:border-neutral-700 transition w-full">
+            {/* Input Row - cap at max-w-xl, rounded-3xl, soft white border, faint shadow */}
+            <form onSubmit={handleSubmit} className="flex items-center gap-4 bg-neutral-900 border border-white/10 rounded-3xl py-6 px-6 shadow-lg shadow-black/45 focus-within:border-neutral-700 transition w-full">
               <button type="button" className="text-neutral-500 hover:text-neutral-350 transition shrink-0">
                 <Paperclip className="h-4 w-4" />
               </button>
@@ -253,24 +254,27 @@ export default function OniPage() {
               </div>
             </form>
 
-            {/* Templates Quick pills section - sit directly below with no header/label */}
-            <div className="flex flex-wrap gap-2.5 justify-center mt-4">
+            {/* Templates Quick pills section - sit directly below with gap-4 */}
+            <div className="flex flex-wrap gap-2.5 justify-center mt-1">
               <button
                 onClick={() => handleQuery('Check my runway & active snapshots')}
-                className="rounded-full border border-neutral-800 bg-neutral-900/50 px-4.5 py-2 text-xs text-neutral-400 hover:border-neutral-750 hover:text-neutral-200 transition"
+                className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-neutral-400 hover:border-neutral-700 hover:text-neutral-200 transition"
               >
+                <DollarSign className="h-3.5 w-3.5" />
                 Check my runway
               </button>
               <button
                 onClick={() => handleQuery('Draft an NDA for hiring developer')}
-                className="rounded-full border border-neutral-800 bg-neutral-900/50 px-4.5 py-2 text-xs text-neutral-400 hover:border-neutral-750 hover:text-neutral-200 transition"
+                className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-neutral-400 hover:border-neutral-700 hover:text-neutral-200 transition"
               >
+                <FileText className="h-3.5 w-3.5" />
                 Draft an NDA
               </button>
               <button
                 onClick={() => handleQuery('Write a GTM launch post for LinkedIn')}
-                className="rounded-full border border-neutral-800 bg-neutral-900/50 px-4.5 py-2 text-xs text-neutral-400 hover:border-neutral-750 hover:text-neutral-200 transition"
+                className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-neutral-400 hover:border-neutral-750 hover:text-neutral-200 transition"
               >
+                <Megaphone className="h-3.5 w-3.5" />
                 Write a launch post
               </button>
             </div>
