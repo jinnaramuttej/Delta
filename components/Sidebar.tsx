@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { LayoutDashboard, Users, DollarSign, Scale, Megaphone } from 'lucide-react';
+import { LayoutDashboard, Users, DollarSign, Scale, Megaphone, Sparkles } from 'lucide-react';
 
 const FOUNDER_ID = '8bbb8137-73b7-4e07-b154-6d0b8034532f';
 
@@ -32,6 +32,7 @@ export default function Sidebar() {
   }, []);
 
   const navItems = [
+    { label: 'Oni', href: '/oni', icon: Sparkles },
     { label: 'Dashboard', href: '/', icon: LayoutDashboard },
     { label: 'Hiring', href: '/hiring', icon: Users },
     { label: 'Finance', href: '/finance', icon: DollarSign },
@@ -39,7 +40,6 @@ export default function Sidebar() {
     { label: 'GTM', href: '/gtm', icon: Megaphone },
   ];
 
-  // Get initials for profile avatar fallback
   const getInitials = (name?: string) => {
     if (!name) return 'FP';
     return name
