@@ -28,6 +28,8 @@ export default function Dashboard() {
   const [todayActivity, setTodayActivity] = useState<ActionCard[]>([]);
   const [financeSnapshot, setFinanceSnapshot] = useState<FinanceSnapshot>(null);
   const [loading, setLoading] = useState(true);
+  const [showAllActivity, setShowAllActivity] = useState(false);
+  const [showAllPending, setShowAllPending] = useState(false);
 
   // Counters for activity cards
   const [stats, setStats] = useState({
@@ -265,34 +267,44 @@ export default function Dashboard() {
                   No activity recorded in the past 24 hours.
                 </div>
               ) : (
-                <div className="relative border-l border-neutral-800 ml-3 pl-5 space-y-4 py-2">
-                  {todayActivity.map((act) => (
-                    <div key={act.id} className="relative flex items-center justify-between">
-                      {/* Timeline dot */}
-                      <span className="absolute -left-[26px] flex h-3.5 w-3.5 items-center justify-center rounded-full bg-neutral-950 border border-neutral-850">
-                        <span className="h-1.5 w-1.5 rounded-full bg-neutral-600" />
-                      </span>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${
-                              badgeClasses[act.agentUsed]
-                            }`}
-                          >
-                            {act.agentUsed}
-                          </span>
-                          <p className="text-sm font-medium text-neutral-250 truncate">
-                            {act.draft ? act.draft.split('\n')[0].replace(/^#+\s*/, '') : 'Draft'}
-                          </p>
+                <>
+                  <div className="relative border-l border-neutral-800 ml-3 pl-5 space-y-4 py-2">
+                    {(showAllActivity ? todayActivity : todayActivity.slice(0, 5)).map((act) => (
+                      <div key={act.id} className="relative flex items-center justify-between">
+                        {/* Timeline dot */}
+                        <span className="absolute -left-[26px] flex h-3.5 w-3.5 items-center justify-center rounded-full bg-neutral-950 border border-neutral-850">
+                          <span className="h-1.5 w-1.5 rounded-full bg-neutral-600" />
+                        </span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${
+                                badgeClasses[act.agentUsed]
+                              }`}
+                            >
+                              {act.agentUsed}
+                            </span>
+                            <p className="text-sm font-medium text-neutral-250 truncate">
+                              {act.draft ? act.draft.split('\n')[0].replace(/^#+\s*/, '') : 'Draft'}
+                            </p>
+                          </div>
+                          <p className="text-xs text-neutral-500 mt-0.5 truncate">Prompt: "{act.inputMessage}"</p>
                         </div>
-                        <p className="text-xs text-neutral-500 mt-0.5 truncate">Prompt: "{act.inputMessage}"</p>
+                        <span className="text-xs text-neutral-500 shrink-0 ml-4">
+                          {getRelativeTime(act.createdAt)}
+                        </span>
                       </div>
-                      <span className="text-xs text-neutral-500 shrink-0 ml-4">
-                        {getRelativeTime(act.createdAt)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                  {todayActivity.length > 5 && (
+                    <button
+                      onClick={() => setShowAllActivity((v) => !v)}
+                      className="mt-3 text-xs text-neutral-500 hover:text-neutral-300 transition flex items-center gap-1"
+                    >
+                      {showAllActivity ? '↑ Show less' : `See all ${todayActivity.length} →`}
+                    </button>
+                  )}
+                </>
               )}
             </section>
 
@@ -363,13 +375,13 @@ export default function Dashboard() {
             No items awaiting your approval.
           </div>
         ) : (
-          <div className="space-y-4">
-            {pending.map((card) => (
+          <div className="space-y-3">
+            {(showAllPending ? pending : pending.slice(0, 4)).map((card) => (
               <div
                 key={card.id}
-                className="rounded-xl border border-amber-500/20 bg-neutral-900/10 p-4 shadow-sm hover:border-amber-500/30 transition duration-150"
+                className="rounded-xl border border-amber-500/20 bg-neutral-900/10 p-3 shadow-sm hover:border-amber-500/30 transition duration-150"
               >
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-1.5">
                   <span
                     className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${
                       badgeClasses[card.agentUsed]
@@ -384,26 +396,34 @@ export default function Dashboard() {
                 <h3 className="text-xs font-bold text-neutral-200 mb-1 leading-snug">
                   {card.draft ? card.draft.split('\n')[0].replace(/^#+\s*/, '') : 'Draft'}
                 </h3>
-                <p className="text-[11px] text-neutral-400 line-clamp-3 whitespace-pre-line leading-normal mb-3">
+                <p className="text-[10px] text-neutral-400 line-clamp-2 whitespace-pre-line leading-normal mb-2">
                   {card.draft}
                 </p>
 
-                <div className="flex gap-2 border-t border-neutral-800/80 pt-2.5">
+                <div className="flex gap-2 border-t border-neutral-800/80 pt-2">
                   <button
                     onClick={() => handleUpdateStatus(card.id, 'approved')}
-                    className="flex-1 rounded-lg bg-neutral-100 py-1 text-[10px] font-semibold text-neutral-950 hover:bg-neutral-200 transition"
+                    className="flex-1 rounded-lg bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-950 hover:bg-neutral-200 transition"
                   >
                     Approve
                   </button>
                   <button
                     onClick={() => handleUpdateStatus(card.id, 'rejected')}
-                    className="flex-1 rounded-lg border border-neutral-800 bg-transparent py-1 text-[10px] font-semibold text-neutral-400 hover:border-neutral-700 hover:bg-neutral-900/40 transition"
+                    className="flex-1 rounded-lg border border-neutral-800 bg-transparent px-3 py-1 text-xs font-semibold text-neutral-400 hover:border-neutral-700 hover:bg-neutral-900/40 transition"
                   >
                     Reject
                   </button>
                 </div>
               </div>
             ))}
+            {pending.length > 4 && (
+              <button
+                onClick={() => setShowAllPending((v) => !v)}
+                className="w-full text-xs text-neutral-500 hover:text-neutral-300 transition text-left flex items-center gap-1 pt-1"
+              >
+                {showAllPending ? '↑ Show less' : `See all ${pending.length} pending →`}
+              </button>
+            )}
           </div>
         )}
       </div>
