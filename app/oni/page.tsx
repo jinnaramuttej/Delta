@@ -227,7 +227,7 @@ export default function OniPage() {
                 stream: false,
                 options: { temperature: 0.1, num_predict: 800 },
               }),
-              signal: AbortSignal.timeout(15000)
+              signal: AbortSignal.timeout(60000)
             });
 
             if (ollamaRes.ok) {
