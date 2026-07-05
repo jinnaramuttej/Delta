@@ -869,6 +869,7 @@ export default function GTMPage() {
                     </div>
                   </div>
                 )}
+              </div> {/* End of Live Platform Mockup wrapper */}
             </div> {/* End of scrollable body */}
 
             {/* ── Publish actions — sticky at the bottom ── */}
