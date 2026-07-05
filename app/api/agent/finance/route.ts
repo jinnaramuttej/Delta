@@ -30,33 +30,81 @@ export async function POST(req: NextRequest) {
     const stage    = founderProfile?.stage    ?? 'not specified';
     const industry = founderProfile?.industry ?? 'not specified';
 
-    // ── Fetch latest real finance snapshot from Supabase ──────────────────────
+    // Fetch latest snapshot first
     const { data: snapshots } = await supabase
       .from('finance_snapshots')
-      .select('cash_balance, monthly_burn, arr, mrr, notes, created_at')
+      .select('cash_in_bank, monthly_burn, runway_months, created_at')
       .eq('founder_id', founderId)
-      .order('id', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(1);
 
     const latestSnap = snapshots?.[0] ?? null;
+    const prevCash = latestSnap ? latestSnap.cash_in_bank : 0;
+    const prevBurn = latestSnap ? latestSnap.monthly_burn : 0;
+
+    const extractionPrompt =
+      `Analyze the founder's message to see if they are updating or logging their financial numbers (cash balance/funding/money raised or monthly burn rate). ` +
+      `Interpret terms like "cr" as Crore (1 Crore = 10,000,000 in India, i.e., 25cr = 250,000,000, 250cr = 2,500,000,000). "k" is thousands (e.g., 40k = 40,000). ` +
+      `If the message mentions a change (e.g., "burning rate increased by 40k"), compute the absolute new value using the previous values. ` +
+      `Previous Cash in bank = ${prevCash}, Previous Monthly Burn = ${prevBurn}. ` +
+      `Return ONLY valid JSON in this exact shape: ` +
+      `{"cash_in_bank": number | null, "monthly_burn": number | null}. ` +
+      `No explanation, no markdown.`;
+
+    let extractedFinance = { cash_in_bank: null, monthly_burn: null };
+    try {
+      const rawExt = await callOllama(extractionPrompt, message, 150);
+      const cleanedExt = rawExt.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+      const parsedExt = JSON.parse(cleanedExt);
+      if (parsedExt) {
+        if (typeof parsedExt.cash_in_bank === 'number') {
+          extractedFinance.cash_in_bank = parsedExt.cash_in_bank;
+        }
+        if (typeof parsedExt.monthly_burn === 'number') {
+          extractedFinance.monthly_burn = parsedExt.monthly_burn;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to extract financial data from message:', e);
+    }
+
+    // If we extracted new financial values, insert a new snapshot!
+    let activeSnap = latestSnap;
+    if (extractedFinance.cash_in_bank !== null || extractedFinance.monthly_burn !== null) {
+      const newCash = extractedFinance.cash_in_bank !== null ? extractedFinance.cash_in_bank : (latestSnap?.cash_in_bank ?? 0);
+      const newBurn = extractedFinance.monthly_burn !== null ? extractedFinance.monthly_burn : (latestSnap?.monthly_burn ?? 0);
+      const runway = newBurn > 0 ? (newCash / newBurn) : 0;
+
+      const uuid = crypto.randomUUID();
+      const { data: newInsert, error: insertErr } = await supabase.from('finance_snapshots').insert({
+        id: uuid,
+        founder_id: founderId,
+        cash_in_bank: newCash,
+        monthly_burn: newBurn,
+        runway_months: runway
+      }).select();
+
+      if (!insertErr && newInsert && newInsert.length > 0) {
+        activeSnap = newInsert[0];
+        console.log('[finance] Successfully logged new finance snapshot from user message:', activeSnap);
+      } else if (insertErr) {
+        console.error('[finance] Failed to insert extracted finance snapshot:', insertErr.message);
+      }
+    }
 
     let snapshotContext = 'No finance snapshots have been logged yet by the founder.';
-    if (latestSnap) {
-      const runway =
-        latestSnap.monthly_burn && latestSnap.monthly_burn > 0
-          ? (latestSnap.cash_balance / latestSnap.monthly_burn).toFixed(1)
-          : null;
+    if (activeSnap) {
+      const runway = activeSnap.runway_months ? activeSnap.runway_months.toFixed(1) : null;
 
       snapshotContext =
         `Latest logged snapshot: ` +
-        `Cash Balance = $${latestSnap.cash_balance?.toLocaleString() ?? 'N/A'}, ` +
-        `Monthly Burn = $${latestSnap.monthly_burn?.toLocaleString() ?? 'N/A'}, ` +
-        `ARR = $${latestSnap.arr?.toLocaleString() ?? 'N/A'}, ` +
-        `MRR = $${latestSnap.mrr?.toLocaleString() ?? 'N/A'}` +
+        `Cash Balance = $${activeSnap.cash_in_bank?.toLocaleString() ?? 'N/A'}, ` +
+        `Monthly Burn = $${activeSnap.monthly_burn?.toLocaleString() ?? 'N/A'}` +
         (runway ? `, Computed Runway = ${runway} months` : '') +
-        (latestSnap.notes ? `, Notes: "${latestSnap.notes}"` : '') +
         `.`;
     }
+
+
 
     const systemPrompt =
       `You are a finance specialist AI for early-stage startup founders. ` +

@@ -368,7 +368,7 @@ export default function OniPage() {
 
       {/* Messages Scroll Area */}
       {hasStarted ? (
-        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8 flex flex-col justify-center">
+        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8 flex flex-col">
           <div className="max-w-3xl w-full mx-auto space-y-8 pb-32">
             {messages.map((msg) => (
               <div
