@@ -171,10 +171,14 @@ export default function OniPage() {
 
             // Step 3: Attempt repair of common model hallucinations before parsing
             // e.g. "name0:" → "name:" (digit suffix on key names)
-            const repairedText = cleanedText
+            let repairedText = cleanedText
               .replace(/"name\d+"?\s*:/g, '"name":')
               .replace(/"role\d+"?\s*:/g, '"role":')
               .replace(/"skills\d+"?\s*:/g, '"skills":');
+
+            // Step 4: Strip raw/unescaped control characters (like raw tabs, newlines inside string literals)
+            // that cause JSON.parse to fail with 'Bad control character in string literal'
+            repairedText = repairedText.replace(/[\u0000-\u001F\u007F-\u009F]/g, " ");
 
             try {
               const parsed = JSON.parse(repairedText);
