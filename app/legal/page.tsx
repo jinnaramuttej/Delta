@@ -139,7 +139,15 @@ export default function LegalPage() {
     }
   };
 
-  const handleSendForSignature = async (id: string) => {
+  const handleSendForSignature = async (id: string, title: string, draft: string) => {
+    const shortId = id.slice(0, 6);
+    const to = `signer-${shortId}@example.com`;
+    const subject = encodeURIComponent("Please Review & Sign: " + title);
+    const body = encodeURIComponent(draft);
+
+    // Open system mail client
+    window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+
     try {
       const { error } = await supabase
         .from('agent_actions')
@@ -147,7 +155,7 @@ export default function LegalPage() {
         .eq('id', id);
       if (!error) {
         setActions((prev) => prev.map((c) => c.id === id ? { ...c, status: 'sent' } : c));
-        showToast('✅ Sent for e-signature (simulated)');
+        showToast('Draft opened in your email client');
       }
     } catch (err: any) {
       alert(`Failed: ${err.message}`);
@@ -325,7 +333,7 @@ export default function LegalPage() {
                         {asset.status === 'approved' && (
                           <div className="flex gap-2 pt-2 border-t border-neutral-850">
                             <button
-                              onClick={() => handleSendForSignature(asset.id)}
+                              onClick={() => handleSendForSignature(asset.id, parsedTitle, asset.draft)}
                               className="flex items-center gap-1.5 rounded-lg bg-violet-500/10 border border-violet-500/20 px-3.5 py-1.5 text-xs font-semibold text-violet-400 hover:bg-violet-500/20 transition"
                             >
                               <Send className="h-3.5 w-3.5" /> Send for Signature

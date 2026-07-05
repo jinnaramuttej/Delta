@@ -149,6 +149,7 @@ export default function HiringPage() {
     rejected: 'bg-red-500/10 text-red-400 border border-red-500/20',
     posted:   'bg-blue-500/10 text-blue-400 border border-blue-500/20',
     sent:     'bg-violet-500/10 text-violet-400 border border-violet-500/20',
+    contacted:'bg-teal-500/10 text-teal-400 border border-teal-500/20',
   };
 
   const handlePostToJobBoard = async (id: string) => {
@@ -160,6 +161,29 @@ export default function HiringPage() {
       if (!error) {
         setActions((prev) => prev.map((c) => c.id === id ? { ...c, status: 'posted' } : c));
         showToast('✅ Posted to job board (simulated)');
+      }
+    } catch (err: any) {
+      alert(`Failed: ${err.message}`);
+    }
+  };
+
+  const handleEmailCandidate = async (id: string, title: string, draft: string) => {
+    const shortId = id.slice(0, 6);
+    const to = `candidate-${shortId}@example.com`;
+    const subject = encodeURIComponent("Job Opportunity: " + title);
+    const body = encodeURIComponent(draft);
+    
+    // Open system mail client
+    window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+
+    try {
+      const { error } = await supabase
+        .from('agent_actions')
+        .update({ status: 'contacted' })
+        .eq('id', id);
+      if (!error) {
+        setActions((prev) => prev.map((c) => c.id === id ? { ...c, status: 'contacted' } : c));
+        showToast('Draft opened in your email client');
       }
     } catch (err: any) {
       alert(`Failed: ${err.message}`);
@@ -460,6 +484,12 @@ export default function HiringPage() {
                               className="flex items-center gap-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 px-3.5 py-1.5 text-xs font-semibold text-blue-400 hover:bg-blue-500/20 transition"
                             >
                               <Briefcase className="h-3.5 w-3.5" /> Post to Job Board
+                            </button>
+                            <button
+                              onClick={() => handleEmailCandidate(asset.id, parsedTitle, asset.draft)}
+                              className="flex items-center gap-1.5 rounded-lg bg-teal-500/10 border border-teal-500/20 px-3.5 py-1.5 text-xs font-semibold text-teal-400 hover:bg-teal-500/20 transition"
+                            >
+                              <Send className="h-3.5 w-3.5" /> Email to Candidate
                             </button>
                           </div>
                         )}
