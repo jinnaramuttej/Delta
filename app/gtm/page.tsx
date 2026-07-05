@@ -910,7 +910,8 @@ export default function GTMPage() {
             </div>
           </div>
         </div>
-      )}
+      </div>
+    )}
     </div>
   );
 }
