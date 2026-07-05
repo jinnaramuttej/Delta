@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Send, Sparkles, Paperclip, Mic, ArrowUp, ImageIcon, DollarSign, FileText, Megaphone, Sun, Info, X, Mail } from 'lucide-react';
+import Strands from '@/components/Strands';
 
 const FOUNDER_ID = '8bbb8137-73b7-4e07-b154-6d0b8034532f';
 
@@ -397,10 +398,23 @@ export default function OniPage() {
 
   return (
     <div className="flex-1 flex flex-col bg-neutral-950 text-neutral-100 overflow-hidden relative">
+      {/* WebGL strands background animation */}
+      <div className="absolute inset-0 z-0 pointer-events-none opacity-40">
+        <Strands
+          colors={['#FF4242', '#7C3AED', '#06B6D4', '#EAB308']}
+          count={5}
+          speed={0.3}
+          amplitude={0.8}
+          thickness={0.5}
+          glow={2.0}
+        />
+      </div>
+      {/* Dark overlay for readability */}
+      <div className="absolute inset-0 bg-neutral-950/75 backdrop-blur-[1px] pointer-events-none z-0" />
       
       {/* Clear chat button — only visible when history exists */}
       {hasStarted && messages.length > 0 && (
-        <div className="absolute top-4 right-6 z-10">
+        <div className="absolute top-4 right-6 z-20">
           <button
             onClick={clearChat}
             className="flex items-center gap-1.5 text-[10px] text-neutral-500 hover:text-neutral-300 border border-neutral-800 hover:border-neutral-700 rounded-lg px-2.5 py-1.5 transition bg-neutral-950/80 backdrop-blur-sm"
@@ -412,7 +426,7 @@ export default function OniPage() {
 
       {/* Messages Scroll Area */}
       {hasStarted ? (
-        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8 flex flex-col">
+        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8 flex flex-col relative z-10">
           <div className="max-w-3xl w-full mx-auto space-y-8 pb-32">
             {messages.map((msg) => (
               <div
@@ -551,7 +565,7 @@ export default function OniPage() {
         </div>
       ) : (
         // Empty State: Centered Greeting and Input layout
-        <div className="flex-1 flex flex-col items-center justify-center p-8 animate-in fade-in duration-300">
+        <div className="flex-1 flex flex-col items-center justify-center p-8 animate-in fade-in duration-300 relative z-10">
           <div className="max-w-xl w-full flex flex-col items-center gap-5">
             <h1 className="text-4xl font-semibold tracking-tight text-neutral-50 flex items-center justify-center gap-2">
               <Sun className="h-7 w-7 text-amber-400 shrink-0" />
