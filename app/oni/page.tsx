@@ -170,11 +170,17 @@ export default function OniPage() {
             const cleanedText = arrayMatch ? arrayMatch[0] : stripped;
 
             // Step 3: Attempt repair of common model hallucinations before parsing
-            // e.g. "name0:" → "name:" (digit suffix on key names)
+            // e.g. "name0:" or name0: or "name0": or name0 : → "name":
             let repairedText = cleanedText
-              .replace(/"name\d+"?\s*:/g, '"name":')
-              .replace(/"role\d+"?\s*:/g, '"role":')
-              .replace(/"skills\d+"?\s*:/g, '"skills":');
+              .replace(/"?name\d+"?\s*:/g, '"name":')
+              .replace(/"?role\d+"?\s*:/g, '"role":')
+              .replace(/"?skills\d+"?\s*:/g, '"skills":')
+              .replace(/"?experience\d+"?\s*:/g, '"experience":')
+              .replace(/"?matchScore\d+"?\s*:/g, '"matchScore":')
+              .replace(/"?availability\d+"?\s*:/g, '"availability":')
+              .replace(/"?currentCompany\d+"?\s*:/g, '"currentCompany":')
+              .replace(/"?aiSummary\d+"?\s*:/g, '"aiSummary":')
+              .replace(/"?hiringRisk\d+"?\s*:/g, '"hiringRisk":');
 
             // Step 4: Strip raw/unescaped control characters (like raw tabs, newlines inside string literals)
             // that cause JSON.parse to fail with 'Bad control character in string literal'
