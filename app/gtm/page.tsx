@@ -79,6 +79,7 @@ export default function GTMPage() {
   const [previewImage, setPreviewImage]       = useState<string | null>(null); // base64 data URL
   const [editedCaption, setEditedCaption]     = useState('');
   const [editingCaption, setEditingCaption]   = useState(false);
+  const [sessionId, setSessionId]             = useState('60456208823%3AvrQrKJyC7EDAyq%3A12%3AAYjLyCBhUaWQU3WEOFcIZxrBaT2l6vVt3X_j7BWXlQ');
   const fileInputRef                          = useRef<HTMLInputElement>(null);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3500); };
@@ -200,7 +201,41 @@ export default function GTMPage() {
     if (!previewCard) return;
     setPublishingState('posting');
 
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    let postSuccess = true;
+    let errorMsg = '';
+
+    // If Instagram and an image is uploaded, make a real post using python API
+    if (previewPlatform === 'Instagram' && previewImage) {
+      try {
+        const res = await fetch('/api/agent/gtm/post-instagram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image: previewImage,
+            caption: editedCaption,
+            sessionId: sessionId.trim()
+          })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          postSuccess = false;
+          errorMsg = errData.error || 'Instagram posting failed';
+        }
+      } catch (err: any) {
+        postSuccess = false;
+        errorMsg = err.message || 'Network error';
+      }
+    } else {
+      // Mock simulation delay for other platforms or if no image
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+
+    if (!postSuccess) {
+      setPublishingState('idle');
+      showToast(`❌ Error: ${errorMsg}`);
+      return;
+    }
 
     // Save edited caption back to Supabase
     const { error } = await supabase
@@ -222,7 +257,11 @@ export default function GTMPage() {
       setTimeout(() => {
         closePreview();
         setLikesCount(0);
-        showToast(`🚀 Published to ${previewPlatform} (simulated)!`);
+        showToast(
+          previewPlatform === 'Instagram' && previewImage
+            ? '🚀 Published to Instagram (REAL)!'
+            : `🚀 Published to ${previewPlatform} (simulated)!`
+        );
       }, 2000);
     } else {
       setPublishingState('idle');
@@ -632,6 +671,22 @@ export default function GTMPage() {
                 )}
               </div>
 
+              {/* ── Instagram Session ID (For real posting) ── */}
+              {previewPlatform === 'Instagram' && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
+                    Instagram Session ID
+                  </p>
+                  <input
+                    type="text"
+                    value={sessionId}
+                    onChange={e => setSessionId(e.target.value)}
+                    className="w-full rounded-xl border border-purple-500/20 bg-neutral-900/40 px-4 py-2.5 text-xs text-neutral-200 placeholder-neutral-700 focus:border-purple-500/40 focus:outline-none transition leading-relaxed font-mono"
+                    placeholder="Enter your Instagram Session ID..."
+                  />
+                </div>
+              )}
+
               {/* ── Editable Caption ── */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -762,7 +817,7 @@ export default function GTMPage() {
               <div className="flex flex-col gap-3 pt-2 border-t border-neutral-800">
                 <div className="flex justify-between items-center">
                   <span className="rounded border border-blue-500/20 bg-blue-500/10 px-2 py-0.5 text-[9px] font-bold text-blue-400 uppercase tracking-widest">
-                    Simulated — No accounts connected
+                    {previewPlatform === 'Instagram' && previewImage ? 'Real posting enabled' : 'Simulated — No accounts connected'}
                   </span>
                   {publishingState === 'success' && (
                     <span className="text-xs font-bold text-green-400 flex items-center gap-1.5">
