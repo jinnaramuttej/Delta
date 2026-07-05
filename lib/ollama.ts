@@ -11,12 +11,12 @@ async function callOpenRouter(
   // Map local Ollama model names to OpenRouter equivalents
   const localModel = process.env.OLLAMA_MODEL ?? 'qwen3:8b';
   const modelMap: Record<string, string> = {
-    'qwen3:8b':  'qwen/qwen3-8b',
-    'phi3':      'microsoft/phi-3-mini-128k-instruct',
-    'phi3:mini': 'microsoft/phi-3-mini-128k-instruct',
-    'llama3':    'meta-llama/llama-3.1-8b-instruct',
+    'qwen3:8b':  'meta-llama/llama-3.1-8b-instruct:free',
+    'phi3':      'meta-llama/llama-3.1-8b-instruct:free',
+    'phi3:mini': 'meta-llama/llama-3.1-8b-instruct:free',
+    'llama3':    'meta-llama/llama-3.1-8b-instruct:free',
   };
-  const orModel = modelMap[localModel] ?? 'qwen/qwen3-8b';
+  const orModel = modelMap[localModel] ?? 'meta-llama/llama-3.1-8b-instruct:free';
 
   console.log(`[openrouter] Calling model: ${orModel}`);
 
