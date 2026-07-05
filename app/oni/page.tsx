@@ -409,9 +409,7 @@ export default function OniPage() {
           glow={2.0}
         />
       </div>
-      {/* Dark overlay for readability */}
-      <div className="absolute inset-0 bg-neutral-950/20 backdrop-blur-[1px] pointer-events-none z-0" />
-      
+
       {/* Clear chat button — only visible when history exists */}
       {hasStarted && messages.length > 0 && (
         <div className="absolute top-4 right-6 z-20">
