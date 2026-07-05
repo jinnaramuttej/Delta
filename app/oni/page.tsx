@@ -64,6 +64,8 @@ export default function OniPage() {
   const [emailBody, setEmailBody] = useState('');
   const [emailCandidateName, setEmailCandidateName] = useState('');
   const [toast, setToast] = useState<string | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3500);
@@ -151,6 +153,48 @@ export default function OniPage() {
     setEmailBody(bodyText);
     setEmailCandidateName(candidate.name);
     setEmailModalOpen(true);
+  };
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Your browser does not support Speech Recognition. Please use Chrome, Edge, or Safari.');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      showToast('🎙️ Listening...');
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+      showToast(`❌ Error: ${event.error}`);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[event.results.length - 1][0].transcript;
+      setInput((prev) => (prev ? prev + ' ' + transcript : transcript));
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
   };
 
   useEffect(() => {
@@ -530,7 +574,11 @@ export default function OniPage() {
                 <button type="button" className="text-neutral-500 hover:text-neutral-300 transition">
                   <Sparkles className="h-4 w-4" />
                 </button>
-                <button type="button" className="text-neutral-500 hover:text-neutral-300 transition">
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  className={`${isListening ? 'text-red-500 animate-pulse' : 'text-neutral-500 hover:text-neutral-300'} transition`}
+                >
                   <Mic className="h-4 w-4" />
                 </button>
                 <button
@@ -590,7 +638,11 @@ export default function OniPage() {
               className="flex-1 bg-transparent text-sm text-neutral-105 placeholder-neutral-500 focus:outline-none disabled:opacity-50"
             />
             <div className="flex items-center gap-4 shrink-0">
-              <button type="button" className="text-neutral-500 hover:text-neutral-305 transition">
+              <button
+                type="button"
+                onClick={toggleListening}
+                className={`${isListening ? 'text-red-500 animate-pulse' : 'text-neutral-500 hover:text-neutral-300'} transition`}
+              >
                 <Mic className="h-4 w-4" />
               </button>
               <button type="button" className="text-neutral-500 hover:text-neutral-305 transition">
