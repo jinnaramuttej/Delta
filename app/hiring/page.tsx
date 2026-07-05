@@ -60,6 +60,13 @@ export default function HiringPage() {
   const [screeningQuestions, setScreeningQuestions] = useState<Record<string, string[]>>({});
   const [loadingQuestions, setLoadingQuestions] = useState<Record<string, boolean>>({});
 
+  // Toast notification state
+  const [toast, setToast] = useState<string | null>(null);
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3500);
+  };
+
   const fetchHiringActions = async () => {
     const { data, error } = await supabase
       .from('agent_actions')
@@ -140,6 +147,23 @@ export default function HiringPage() {
     pending: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
     approved: 'bg-green-500/10 text-green-400 border border-green-500/20',
     rejected: 'bg-red-500/10 text-red-400 border border-red-500/20',
+    posted:   'bg-blue-500/10 text-blue-400 border border-blue-500/20',
+    sent:     'bg-violet-500/10 text-violet-400 border border-violet-500/20',
+  };
+
+  const handlePostToJobBoard = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('agent_actions')
+        .update({ status: 'posted' })
+        .eq('id', id);
+      if (!error) {
+        setActions((prev) => prev.map((c) => c.id === id ? { ...c, status: 'posted' } : c));
+        showToast('✅ Posted to job board (simulated)');
+      }
+    } catch (err: any) {
+      alert(`Failed: ${err.message}`);
+    }
   };
 
   // Derived stats
@@ -151,6 +175,12 @@ export default function HiringPage() {
 
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-neutral-950 text-neutral-100 overflow-y-auto pb-24">
+      {/* Toast notification */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-xl bg-neutral-900 border border-neutral-700 px-5 py-3 text-sm text-neutral-100 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+          {toast}
+        </div>
+      )}
       {/* Header */}
       <header className="border-b border-neutral-800 bg-neutral-950/80 px-8 py-5 backdrop-blur-md sticky top-0 z-30">
         <div className="flex items-center justify-between">
@@ -420,6 +450,16 @@ export default function HiringPage() {
                               className="rounded border border-neutral-800 bg-transparent px-3.5 py-1.5 text-xs font-medium text-neutral-400 hover:bg-neutral-900 transition"
                             >
                               Reject
+                            </button>
+                          </div>
+                        )}
+                        {asset.status === 'approved' && (
+                          <div className="flex gap-2 pt-2 border-t border-neutral-850">
+                            <button
+                              onClick={() => handlePostToJobBoard(asset.id)}
+                              className="flex items-center gap-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 px-3.5 py-1.5 text-xs font-semibold text-blue-400 hover:bg-blue-500/20 transition"
+                            >
+                              <Briefcase className="h-3.5 w-3.5" /> Post to Job Board
                             </button>
                           </div>
                         )}

@@ -136,10 +136,18 @@ export default function Dashboard() {
   };
 
   const badgeClasses: Record<string, string> = {
-    hiring: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
+    hiring:  'bg-blue-500/10 text-blue-400 border border-blue-500/20',
     finance: 'bg-green-500/10 text-green-400 border border-green-500/20',
-    legal: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
-    gtm: 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
+    legal:   'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+    gtm:     'bg-purple-500/10 text-purple-400 border border-purple-500/20',
+  };
+
+  const statusBadgeClasses: Record<string, string> = {
+    pending:  'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+    approved: 'bg-green-500/10 text-green-400 border border-green-500/20',
+    rejected: 'bg-red-500/10 text-red-400 border border-red-500/20',
+    posted:   'bg-blue-500/10 text-blue-400 border border-blue-500/20',
+    sent:     'bg-violet-500/10 text-violet-400 border border-violet-500/20',
   };
 
   return (
@@ -320,25 +328,9 @@ export default function Dashboard() {
                           <span className="text-xs text-neutral-500">
                             {new Date(card.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
-                          {card.requiresApproval ? (
-                            card.status === 'approved' ? (
-                              <span className="rounded bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-400 border border-green-500/20">
-                                Approved
-                              </span>
-                            ) : card.status === 'rejected' ? (
-                              <span className="rounded bg-red-500/10 px-2 py-0.5 text-[10px] font-semibold text-red-400 border border-red-500/20">
-                                Rejected
-                              </span>
-                            ) : (
-                              <span className="rounded bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-400 border border-amber-500/20 animate-pulse">
-                                Pending
-                              </span>
-                            )
-                          ) : (
-                            <span className="rounded bg-neutral-800 px-2 py-0.5 text-[10px] font-semibold text-neutral-400">
-                              Info
-                            </span>
-                          )}
+                          <span className={`rounded px-2 py-0.5 text-[10px] font-semibold capitalize ${statusBadgeClasses[card.status] ?? 'bg-neutral-800 text-neutral-400'} ${card.status === 'pending' ? 'animate-pulse' : ''}`}>
+                            {card.status}
+                          </span>
                         </div>
                       </div>
                     ))}

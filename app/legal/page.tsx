@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
   Scale, FileText, Check, X, ShieldAlert, Award, 
-  Download, Sparkles, RefreshCw, UploadCloud, FileCheck
+  Download, Sparkles, RefreshCw, UploadCloud, FileCheck, Send,
+  ChevronDown, ChevronUp
 } from 'lucide-react';
 
 const FOUNDER_ID = '8bbb8137-73b7-4e07-b154-6d0b8034532f';
@@ -32,10 +33,26 @@ export default function LegalPage() {
   const [actions, setActions] = useState<ActionCard[]>([]);
   const [message, setMessage] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Toast notification state
+  const [toast, setToast] = useState<string | null>(null);
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3500);
+  };
+
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const statusColors: Record<string, string> = {
+    pending:  'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+    approved: 'bg-green-500/10 text-green-400 border border-green-500/20',
+    rejected: 'bg-red-500/10 text-red-400 border border-red-500/20',
+    sent:     'bg-violet-500/10 text-violet-400 border border-violet-500/20',
+    posted:   'bg-blue-500/10 text-blue-400 border border-blue-500/20',
+  };
 
   const fetchLegalActions = async () => {
     const { data, error } = await supabase
@@ -122,8 +139,30 @@ export default function LegalPage() {
     }
   };
 
+  const handleSendForSignature = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('agent_actions')
+        .update({ status: 'sent' })
+        .eq('id', id);
+      if (!error) {
+        setActions((prev) => prev.map((c) => c.id === id ? { ...c, status: 'sent' } : c));
+        showToast('✅ Sent for e-signature (simulated)');
+      }
+    } catch (err: any) {
+      alert(`Failed: ${err.message}`);
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-neutral-950 text-neutral-100 overflow-y-auto pb-24">
+      {/* Toast notification */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-xl bg-neutral-900 border border-neutral-700 px-5 py-3 text-sm text-neutral-100 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+          {toast}
+        </div>
+      )}
+
       {/* Header */}
       <header className="border-b border-neutral-800 bg-neutral-950/80 px-8 py-5 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between">
         <div>
@@ -230,36 +269,31 @@ export default function LegalPage() {
           ) : (
             <div className="space-y-3">
               {actions.map((asset) => {
-                const isExpanded = selectedTemplate === asset.id; // local template select repurpose or custom expandedState
+                const isExpanded = expandedId === asset.id;
                 const parsedTitle = asset.draft.split('\n')[0].replace(/^#+\s*/, '') || 'Legal Document';
-                
-                const statusColors: Record<string, string> = {
-                  pending: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
-                  approved: 'bg-green-500/10 text-green-400 border border-green-500/20',
-                  rejected: 'bg-red-500/10 text-red-400 border border-red-500/20',
-                };
 
                 return (
                   <div key={asset.id} className="rounded-xl border border-neutral-800 bg-neutral-900/10 hover:border-neutral-750 transition overflow-hidden">
                     <div 
-                      onClick={() => setSelectedTemplate(selectedTemplate === asset.id ? '' : asset.id)}
+                      onClick={() => setExpandedId(isExpanded ? null : asset.id)}
                       className="p-5 flex items-center justify-between cursor-pointer"
                     >
-                      <div>
-                        <h4 className="text-sm font-bold text-neutral-250">{parsedTitle}</h4>
+                      <div className="min-w-0">
+                        <h4 className="text-sm font-bold text-neutral-250 truncate">{parsedTitle}</h4>
                         <p className="text-xs text-neutral-500 mt-1">Prompt: "{asset.inputMessage}"</p>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 shrink-0 ml-4">
                         <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${statusColors[asset.status] || 'bg-neutral-800 text-neutral-400'}`}>
                           {asset.status}
                         </span>
                         <span className="text-xs text-neutral-500">
                           {asset.createdAt ? new Date(asset.createdAt).toLocaleDateString() : '—'}
                         </span>
+                        {isExpanded ? <ChevronUp className="h-4 w-4 text-neutral-500" /> : <ChevronDown className="h-4 w-4 text-neutral-500" />}
                       </div>
                     </div>
 
-                    {selectedTemplate === asset.id && (
+                    {isExpanded && (
                       <div className="px-5 pb-5 pt-2 border-t border-neutral-850 space-y-4 animate-in fade-in duration-200">
                         {/* Legal Review Disclaimer Badge */}
                         <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3.5 py-2 text-xs font-semibold text-amber-400 w-fit">
@@ -284,6 +318,17 @@ export default function LegalPage() {
                               className="rounded border border-neutral-800 bg-transparent px-3.5 py-1.5 text-xs font-medium text-neutral-400 hover:bg-neutral-900 transition"
                             >
                               Reject
+                            </button>
+                          </div>
+                        )}
+
+                        {asset.status === 'approved' && (
+                          <div className="flex gap-2 pt-2 border-t border-neutral-850">
+                            <button
+                              onClick={() => handleSendForSignature(asset.id)}
+                              className="flex items-center gap-1.5 rounded-lg bg-violet-500/10 border border-violet-500/20 px-3.5 py-1.5 text-xs font-semibold text-violet-400 hover:bg-violet-500/20 transition"
+                            >
+                              <Send className="h-3.5 w-3.5" /> Send for Signature
                             </button>
                           </div>
                         )}
