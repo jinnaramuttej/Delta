@@ -53,7 +53,6 @@ export default function HiringPage() {
   // Selected candidate profile slide-over panel
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [profileTab, setProfileTab] = useState<'ai' | 'skills'>('ai');
-  const [founderProfile, setFounderProfile] = useState<{ name: string; startup_name: string } | null>(null);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [emailTo, setEmailTo] = useState('');
   const [emailSubject, setEmailSubject] = useState('');
