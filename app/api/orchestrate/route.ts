@@ -4,14 +4,15 @@ import { supabase } from '@/lib/supabase';
 
 const CLASSIFIER_SYSTEM_PROMPT =
   'You are a routing classifier for a startup founder assistant. ' +
-  'Classify the founder\'s message into exactly one of: finance, hiring, legal. ' +
+  'Classify the founder\'s message into exactly one of: finance, hiring, legal, gtm. ' +
+  'Choose "gtm" for marketing posts, launch announcements, social media, landing page copy, or positioning statements. ' +
   'Also extract any relevant details (tech stack, role, amount, topic) as a short string. ' +
-  'Return ONLY valid JSON in this exact shape: {"agent": "finance|hiring|legal", "extractedContext": "short string"}. ' +
+  'Return ONLY valid JSON in this exact shape: {"agent": "finance|hiring|legal|gtm", "extractedContext": "short string"}. ' +
   'No explanation, no markdown, no extra text. ' +
   'Even for greetings or unclear messages, you MUST pick the closest matching agent — never return an empty string for agent. Default to \'legal\' if truly unclear.';
 
 type ClassifierResult = {
-  agent: 'finance' | 'hiring' | 'legal';
+  agent: 'finance' | 'hiring' | 'legal' | 'gtm';
   extractedContext: string;
 };
 
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Fallback: If agent is empty, undefined, or invalid, default to 'legal'
-    const validAgents = ['finance', 'hiring', 'legal'];
+    const validAgents = ['finance', 'hiring', 'legal', 'gtm'];
     if (!classification.agent || !validAgents.includes(classification.agent)) {
       console.warn(`[orchestrate] Invalid classification agent "${classification.agent}", defaulting to "legal"`);
       classification.agent = 'legal';
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
     // ── Step 3: Forward to the appropriate agent endpoint ─────────────────────
     const { agent, extractedContext } = classification;
 
-    const agentUrl = `http://localhost:3000/api/agent/${agent}`;
+    const agentUrl = `http://127.0.0.1:3000/api/agent/${agent}`;
     console.log('[orchestrate] Calling agent:', agentUrl);
 
     const agentRes = await fetch(agentUrl, {

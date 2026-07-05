@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       agent_type:        'gtm',
       input_message:     message,
       output_draft:      { text: draft },
-      requires_approval: false,
+      requires_approval: true,
       status:            'pending',
     });
 
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     const response: AgentResponse = {
       agentUsed:        'gtm',
       draft,
-      requiresApproval: false,
+      requiresApproval: true,
       summary:          `Drafted ${contentType} for ${startupName}`,
     };
 
