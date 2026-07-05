@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Send, Sparkles, Paperclip, Mic, ArrowUp, ImageIcon, DollarSign, FileText, Megaphone, Sun, Info, X } from 'lucide-react';
+import { Send, Sparkles, Paperclip, Mic, ArrowUp, ImageIcon, DollarSign, FileText, Megaphone, Sun, Info, X, Mail } from 'lucide-react';
 
 const FOUNDER_ID = '8bbb8137-73b7-4e07-b154-6d0b8034532f';
 
@@ -26,6 +26,7 @@ type Message = {
   requiresApproval?: boolean;
   status?: string;
   candidatesList?: Candidate[];
+  candidatesLoading?: boolean;
   actionId?: string;
 };
 
@@ -53,9 +54,20 @@ export default function OniPage() {
     } catch { return false; }
   });
   const [founderName, setFounderName] = useState('');
+  const [founderProfile, setFounderProfile] = useState<{ name: string; startup_name: string } | null>(null);
   const [greeting, setGreeting] = useState('Hello');
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [profileTab, setProfileTab] = useState<'ai' | 'skills'>('ai');
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailTo, setEmailTo] = useState('');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [emailCandidateName, setEmailCandidateName] = useState('');
+  const [toast, setToast] = useState<string | null>(null);
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3500);
+  };
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const clearChat = () => {
@@ -72,15 +84,16 @@ export default function OniPage() {
   };
 
   useEffect(() => {
-    // 1. Fetch founder profile name
+    // 1. Fetch founder profile name & startup name
     async function fetchFounder() {
       const { data, error } = await supabase
         .from('founder_profile')
-        .select('name')
+        .select('name, startup_name')
         .eq('id', FOUNDER_ID)
         .single();
       if (!error && data) {
         setFounderName(data.name);
+        setFounderProfile(data);
       }
     }
     fetchFounder();
@@ -98,6 +111,47 @@ export default function OniPage() {
       try { localStorage.setItem(ONI_CHAT_KEY, JSON.stringify(messages)); } catch { /* quota exceeded */ }
     }
   }, [messages]);
+
+  const handleEmailCandidateDirect = async (candidate: Candidate) => {
+    const nameParts = candidate.name.trim().split(/\s+/);
+    const firstName = nameParts[0] ? nameParts[0].toLowerCase() : 'candidate';
+    const lastName = nameParts[nameParts.length - 1] && nameParts.length > 1 ? nameParts[nameParts.length - 1].toLowerCase() : '';
+    const to = lastName ? `${firstName}.${lastName}@example-candidate.com` : `${firstName}@example-candidate.com`;
+    
+    const startupName = founderProfile?.startup_name || 'our startup';
+    const subject = `Opportunity: ${candidate.role} at ${startupName}`;
+    
+    // Fetch the most recent approved JD draft from DB
+    let mostRecentApprovedJD = null;
+    try {
+      const { data, error } = await supabase
+        .from('agent_actions')
+        .select('output_draft')
+        .eq('founder_id', FOUNDER_ID)
+        .eq('agent_type', 'hiring')
+        .in('status', ['approved', 'posted', 'contacted'])
+        .order('created_at', { ascending: false })
+        .limit(1);
+        
+      if (!error && data && data.length > 0) {
+        mostRecentApprovedJD = (data[0].output_draft as { text?: string })?.text ?? null;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    
+    const jdText = mostRecentApprovedJD 
+      ? `Here is the job description:\n\n${mostRecentApprovedJD}`
+      : `We are looking for someone with your background to join our team and help us build the next generation of our product.`;
+      
+    const bodyText = `Hi ${candidate.name},\n\nWe came across your profile and think you'd be a great fit for our ${candidate.role} position at ${startupName}.\n\n${jdText}\n\nLooking forward to connecting.\n\nBest,\n${founderProfile?.name || founderName || 'Founder'}`;
+    
+    setEmailTo(to);
+    setEmailSubject(subject);
+    setEmailBody(bodyText);
+    setEmailCandidateName(candidate.name);
+    setEmailModalOpen(true);
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -126,10 +180,7 @@ export default function OniPage() {
 
       const data = await res.json();
       
-      // If it classified as hiring, fetch matching candidates from Ollama dynamically
-      let candidatesList: Candidate[] = [];
       let actionId = '';
-
       const { data: recentActions } = await supabase
         .from('agent_actions')
         .select('id')
@@ -142,122 +193,137 @@ export default function OniPage() {
         actionId = recentActions[0].id;
       }
 
-      if (data.agentUsed === 'hiring') {
-        try {
-          const modelName = process.env.NEXT_PUBLIC_OLLAMA_MODEL || process.env.OLLAMA_MODEL || 'phi3';
-          const ollamaRes = await fetch('http://localhost:11434/api/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model: modelName,
-              prompt: `/no_think Generate exactly 3 realistic but clearly fictional example candidate profiles for this hiring role: "${queryText}". Return ONLY a raw JSON array matching this typescript shape: Array<{ name: string, role: string, experience: string, matchScore: number, skills: string[], availability: string, currentCompany: string, aiSummary: string, hiringRisk: 'Low' | 'Medium' | 'High' }>. Do not include markdown code block formatting or explanation, just the raw JSON.`,
-              stream: false,
-              options: { temperature: 0.1, num_predict: 800 },
-            })
-          });
+      const oniMsgId = data.id || Math.random().toString();
+      const isHiring = data.agentUsed === 'hiring';
 
-          if (ollamaRes.ok) {
-            const rawText = (await ollamaRes.json()).response;
-
-            // Step 1: Strip all markdown fence variants (```json, ```, with any surrounding whitespace)
-            const stripped = rawText
-              .replace(/```json\s*/gi, '')
-              .replace(/```\s*/g, '')
-              .trim();
-
-            // Step 2: Extract the first [...] array block — ignore any trailing prose
-            const arrayMatch = stripped.match(/\[[\s\S]*\]/);
-            const cleanedText = arrayMatch ? arrayMatch[0] : stripped;
-
-            // Step 3: Attempt repair of common model hallucinations before parsing
-            // e.g. "name0:" or name0: or "name0": or name0 : → "name":
-            let repairedText = cleanedText
-              .replace(/"?name\d+"?\s*:/g, '"name":')
-              .replace(/"?role\d+"?\s*:/g, '"role":')
-              .replace(/"?skills\d+"?\s*:/g, '"skills":')
-              .replace(/"?experience\d+"?\s*:/g, '"experience":')
-              .replace(/"?matchScore\d+"?\s*:/g, '"matchScore":')
-              .replace(/"?availability\d+"?\s*:/g, '"availability":')
-              .replace(/"?currentCompany\d+"?\s*:/g, '"currentCompany":')
-              .replace(/"?aiSummary\d+"?\s*:/g, '"aiSummary":')
-              .replace(/"?hiringRisk\d+"?\s*:/g, '"hiringRisk":');
-
-            // Step 4: Strip raw/unescaped control characters (like raw tabs, newlines inside string literals)
-            // that cause JSON.parse to fail with 'Bad control character in string literal'
-            repairedText = repairedText.replace(/[\u0000-\u001F\u007F-\u009F]/g, " ");
-
-            try {
-              const parsed = JSON.parse(repairedText);
-              if (Array.isArray(parsed)) {
-                // Filter to only well-formed candidates
-                candidatesList = parsed.filter(
-                  (c: Candidate) => typeof c?.name === 'string' && c.name.trim().length > 0
-                );
-              }
-            } catch (jsonErr) {
-              console.error("[oni] JSON parsing failed for raw Ollama response. Raw Output was:", rawText);
-              console.warn("JSON parse failed, loading default fallback profiles:", jsonErr);
-              candidatesList = [
-                {
-                  name: "Aarav Sharma",
-                  role: "Backend Engineer",
-                  experience: "4 years",
-                  matchScore: 94,
-                  skills: ["Node.js", "Express", "MongoDB", "TypeScript"],
-                  availability: "Immediate",
-                  currentCompany: "TechSolutions",
-                  aiSummary: "Strong backend specialist with extensive experience building REST APIs, managing database clusters, and scaling microservices.",
-                  hiringRisk: "Low"
-                },
-                {
-                  name: "Priya Patel",
-                  role: "Senior Backend Developer",
-                  experience: "6 years",
-                  matchScore: 89,
-                  skills: ["Python", "Django", "PostgreSQL", "AWS"],
-                  availability: "2 weeks notice",
-                  currentCompany: "ScaleUp Systems",
-                  aiSummary: "Senior engineer specializing in cloud architecture, database query optimizations, and secure systems engineering.",
-                  hiringRisk: "Low"
-                },
-                {
-                  name: "Rohan Das",
-                  role: "Fullstack Eng (Backend Focused)",
-                  experience: "3 years",
-                  matchScore: 82,
-                  skills: ["Node.js", "React", "PostgreSQL", "Docker"],
-                  availability: "Immediate",
-                  currentCompany: "Freelance / Self-employed",
-                  aiSummary: "Versatile engineer with clean coding practices, solid system integration knowledge, and robust containerization habits.",
-                  hiringRisk: "Medium"
-                }
-              ];
-            }
-          }
-        } catch (simErr) {
-          console.error("Failed to generate dynamic simulator matches in Oni Page:", simErr);
-        }
-      }
-
+      // Insert the response immediately so user sees the draft
       setMessages((prev) => [
         ...prev,
         {
-          id: data.id || Math.random().toString(),
+          id: oniMsgId,
           sender: 'oni',
           text: data.draft || data.summary || 'Task completed by Agent.',
           agentUsed: data.agentUsed,
           requiresApproval: data.requiresApproval,
           status: data.status || 'pending',
-          candidatesList: candidatesList.length > 0 ? candidatesList : undefined,
+          candidatesLoading: isHiring,
           actionId: actionId || data.id,
         },
       ]);
+      setLoading(false);
+
+      if (isHiring) {
+        // Fetch candidates in the background
+        (async () => {
+          let candidatesList: Candidate[] = [];
+          try {
+            const modelName = 'qwen3:8b';
+            const ollamaRes = await fetch('http://127.0.0.1:11434/api/generate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                model: modelName,
+                prompt: `/no_think Generate exactly 3 realistic but clearly fictional example candidate profiles for this hiring role: "${queryText}". Return ONLY a raw JSON array matching this typescript shape: Array<{ name: string, role: string, experience: string, matchScore: number, skills: string[], availability: string, currentCompany: string, aiSummary: string, hiringRisk: 'Low' | 'Medium' | 'High' }>. Do not include markdown code block formatting or explanation, just the raw JSON.`,
+                stream: false,
+                options: { temperature: 0.1, num_predict: 800 },
+              }),
+              signal: AbortSignal.timeout(15000)
+            });
+
+            if (ollamaRes.ok) {
+              const rawText = (await ollamaRes.json()).response;
+
+              // Step 1: Strip all markdown fence variants
+              const stripped = rawText
+                .replace(/```json\s*/gi, '')
+                .replace(/```\s*/g, '')
+                .trim();
+
+              // Step 2: Extract the first [...] array block
+              const arrayMatch = stripped.match(/\[[\s\S]*\]/);
+              const cleanedText = arrayMatch ? arrayMatch[0] : stripped;
+
+              // Step 3: Attempt repair of common model hallucinations
+              let repairedText = cleanedText
+                .replace(/"?name\d+"?\s*:/g, '"name":')
+                .replace(/"?role\d+"?\s*:/g, '"role":')
+                .replace(/"?skills\d+"?\s*:/g, '"skills":')
+                .replace(/"?experience\d+"?\s*:/g, '"experience":')
+                .replace(/"?matchScore\d+"?\s*:/g, '"matchScore":')
+                .replace(/"?availability\d+"?\s*:/g, '"availability":')
+                .replace(/"?currentCompany\d+"?\s*:/g, '"currentCompany":')
+                .replace(/"?aiSummary\d+"?\s*:/g, '"aiSummary":')
+                .replace(/"?hiringRisk\d+"?\s*:/g, '"hiringRisk":');
+
+              repairedText = repairedText.replace(/[\u0000-\u001F\u007F-\u009F]/g, " ");
+
+              try {
+                const parsed = JSON.parse(repairedText);
+                if (Array.isArray(parsed)) {
+                  candidatesList = parsed.filter(
+                    (c: Candidate) => typeof c?.name === 'string' && c.name.trim().length > 0
+                  );
+                }
+              } catch (jsonErr) {
+                console.error("[oni] JSON parsing failed for raw Ollama response. Raw Output was:", rawText);
+              }
+            }
+          } catch (simErr) {
+            console.error("Failed to generate dynamic simulator matches in Oni Page:", simErr);
+          }
+
+          if (candidatesList.length === 0) {
+            candidatesList = [
+              {
+                name: "Aarav Sharma",
+                role: "Backend Engineer",
+                experience: "4 years",
+                matchScore: 94,
+                skills: ["Node.js", "Express", "MongoDB", "TypeScript"],
+                availability: "Immediate",
+                currentCompany: "TechSolutions",
+                aiSummary: "Strong backend specialist with extensive experience building REST APIs, managing database clusters, and scaling microservices.",
+                hiringRisk: "Low"
+              },
+              {
+                name: "Priya Patel",
+                role: "Senior Backend Developer",
+                experience: "6 years",
+                matchScore: 89,
+                skills: ["Python", "Django", "PostgreSQL", "AWS"],
+                availability: "2 weeks notice",
+                currentCompany: "ScaleUp Systems",
+                aiSummary: "Senior engineer specializing in cloud architecture, database query optimizations, and secure systems engineering.",
+                hiringRisk: "Low"
+              },
+              {
+                name: "Rohan Das",
+                role: "Fullstack Eng (Backend Focused)",
+                experience: "3 years",
+                matchScore: 82,
+                skills: ["Node.js", "React", "PostgreSQL", "Docker"],
+                availability: "Immediate",
+                currentCompany: "Freelance / Self-employed",
+                aiSummary: "Versatile engineer with clean coding practices, solid system integration knowledge, and robust containerization habits.",
+                hiringRisk: "Medium"
+              }
+            ];
+          }
+
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === oniMsgId
+                ? { ...m, candidatesList, candidatesLoading: false }
+                : m
+            )
+          );
+        })();
+      }
     } catch (err) {
       setMessages((prev) => [
         ...prev,
         { id: Math.random().toString(), sender: 'oni', text: 'Sorry, I encountered an error coordinating with the orchestrator.' },
       ]);
-    } finally {
       setLoading(false);
     }
   };
@@ -355,7 +421,7 @@ export default function OniPage() {
                       )}
 
                       {/* Display matched candidate profiles if agent is hiring, and status is approved */}
-                      {msg.agentUsed === 'hiring' && msg.status === 'approved' && msg.candidatesList && (
+                      {msg.agentUsed === 'hiring' && msg.status === 'approved' && (msg.candidatesList || msg.candidatesLoading) && (
                         <div className="mt-4 pt-4 border-t border-neutral-850 space-y-3">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400">Matched Candidates</span>
@@ -363,28 +429,53 @@ export default function OniPage() {
                               <Info className="h-3 w-3" /> Demo data — awaiting LinkedIn API
                             </span>
                           </div>
-                          <div className="grid gap-2">
-                            {msg.candidatesList.filter(c => typeof c?.name === 'string' && c.name.trim().length > 0).map((cand, idx) => (
-                              <div
-                                key={idx}
-                                onClick={() => setSelectedCandidate(cand)}
-                                className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900/50 p-3 hover:border-neutral-750 transition cursor-pointer"
-                              >
-                                <div className="flex items-center gap-3">
-                                  <div className="h-8 w-8 rounded bg-neutral-850 flex items-center justify-center text-xs font-bold text-neutral-400">
-                                    {(cand.name ?? '?').split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase()}
+                          {msg.candidatesLoading ? (
+                            <div className="flex items-center gap-2 py-2 text-xs text-neutral-400">
+                              <span className="animate-spin h-3 w-3 border-2 border-neutral-500 border-t-transparent rounded-full" />
+                              Searching matching candidates...
+                            </div>
+                          ) : msg.candidatesList ? (
+                            <div className="grid gap-2">
+                              {msg.candidatesList.filter(c => typeof c?.name === 'string' && c.name.trim().length > 0).map((cand, idx) => (
+                                <div
+                                  key={idx}
+                                  onClick={() => setSelectedCandidate(cand)}
+                                  className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900/50 p-3 hover:border-neutral-750 transition cursor-pointer"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className="h-8 w-8 rounded bg-neutral-850 flex items-center justify-center text-xs font-bold text-neutral-400">
+                                      {(cand.name ?? '?').split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase()}
+                                    </div>
+                                    <div>
+                                      <h4 className="text-xs font-semibold text-neutral-200">{cand.name}</h4>
+                                      <p className="text-[10px] text-neutral-500">{cand.role} · {cand.currentCompany}</p>
+                                    </div>
                                   </div>
-                                  <div>
-                                    <h4 className="text-xs font-semibold text-neutral-200">{cand.name}</h4>
-                                    <p className="text-[10px] text-neutral-500">{cand.role} · {cand.currentCompany}</p>
+                                  <div className="flex items-center gap-3">
+                                    {/* Tooltip & Mail Button */}
+                                    <div className="relative group">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEmailCandidateDirect(cand);
+                                        }}
+                                        className="rounded-lg p-2 bg-neutral-900 border border-neutral-850 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 transition"
+                                      >
+                                        <Mail className="h-3.5 w-3.5" />
+                                      </button>
+                                      <div className="absolute bottom-full mb-2 hidden group-hover:block left-1/2 -translate-x-1/2 bg-neutral-900 border border-neutral-800 text-[10px] text-neutral-300 px-2 py-1 rounded shadow-lg whitespace-nowrap z-50">
+                                        Opens your email client
+                                      </div>
+                                    </div>
+
+                                    <span className="text-[10px] font-bold text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full">
+                                      {cand.matchScore}% Match
+                                    </span>
                                   </div>
                                 </div>
-                                <span className="text-[10px] font-bold text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full">
-                                  {cand.matchScore}% Match
-                                </span>
-                              </div>
-                            ))}
-                          </div>
+                              ))}
+                            </div>
+                          ) : null}
                         </div>
                       )}
                     </div>
@@ -556,6 +647,19 @@ export default function OniPage() {
                 </div>
               </div>
 
+              <div className="flex flex-col gap-1.5 border-b border-neutral-800 pb-5">
+                <button
+                  onClick={() => handleEmailCandidateDirect(selectedCandidate)}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-neutral-100 px-4 py-2.5 text-sm font-bold text-neutral-950 hover:bg-neutral-200 transition"
+                >
+                  <Mail className="h-4 w-4" />
+                  Email Candidate
+                </button>
+                <p className="text-[10px] text-neutral-500 text-center">
+                  Opens your email client
+                </p>
+              </div>
+
               {/* Sub Navigation Tabs */}
               <div className="flex border-b border-neutral-800">
                 {[{ id: 'ai', label: 'AI Analysis' }, { id: 'skills', label: 'Skills' }].map((tab) => (
@@ -606,6 +710,94 @@ export default function OniPage() {
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast notification */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-55 rounded-xl bg-neutral-900 border border-neutral-700 px-5 py-3 text-sm text-neutral-100 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+          {toast}
+        </div>
+      )}
+
+      {/* ── Contact Candidate Modal (Custom Contact Page Overlay) ── */}
+      {emailModalOpen && (
+        <div className="fixed inset-0 z-55 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="relative flex w-full max-w-2xl flex-col rounded-2xl border border-neutral-800 bg-neutral-950 p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-neutral-850 pb-4 mb-5">
+              <div>
+                <h3 className="text-base font-bold text-neutral-100 flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-neutral-400" /> Contact Candidate
+                </h3>
+                <p className="text-xs text-neutral-500 mt-0.5">Send the job description and custom message to {emailCandidateName}</p>
+              </div>
+              <button
+                onClick={() => setEmailModalOpen(false)}
+                className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-900 hover:text-neutral-200 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1.5">Recipient Email</label>
+                <input
+                  type="email"
+                  value={emailTo}
+                  onChange={(e) => setEmailTo(e.target.value)}
+                  className="w-full rounded-xl border border-neutral-850 bg-neutral-900/50 px-4 py-2.5 text-sm text-neutral-250 placeholder-neutral-600 focus:border-neutral-700 focus:outline-none transition"
+                  placeholder="candidate@example.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1.5">Subject</label>
+                <input
+                  type="text"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  className="w-full rounded-xl border border-neutral-850 bg-neutral-900/50 px-4 py-2.5 text-sm text-neutral-250 placeholder-neutral-600 focus:border-neutral-700 focus:outline-none transition"
+                  placeholder="Subject of the email"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1.5">Message Body</label>
+                <textarea
+                  value={emailBody}
+                  onChange={(e) => setEmailBody(e.target.value)}
+                  rows={12}
+                  className="w-full rounded-xl border border-neutral-850 bg-neutral-900/50 px-4 py-2.5 text-xs text-neutral-300 placeholder-neutral-600 focus:border-neutral-700 focus:outline-none transition resize-y font-sans leading-relaxed"
+                  placeholder="Write your message here..."
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between mt-6 pt-4 border-t border-neutral-850">
+              <span className="text-[10px] text-neutral-500 max-w-[60%] leading-normal">
+                Clicking send will launch your configured system mail client with the drafted details.
+              </span>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setEmailModalOpen(false)}
+                  className="rounded-xl border border-neutral-850 bg-transparent px-4 py-2 text-xs font-semibold text-neutral-400 hover:bg-neutral-900 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    window.location.href = `mailto:${emailTo}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+                    setEmailModalOpen(false);
+                    showToast(`📧 Draft loaded in your mail client for ${emailTo}`);
+                  }}
+                  className="flex items-center gap-1.5 rounded-xl bg-neutral-100 px-4 py-2 text-xs font-bold text-neutral-950 hover:bg-neutral-200 transition"
+                >
+                  <Send className="h-3.5 w-3.5" /> Send Email
+                </button>
               </div>
             </div>
           </div>
