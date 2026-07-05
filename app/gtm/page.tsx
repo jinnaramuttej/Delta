@@ -55,6 +55,7 @@ type ActionCard = {
   id: string;
   inputMessage: string;
   draft: string;
+  image?: string | null; // base64 data URL saved at publish time
   requiresApproval: boolean;
   status: string;
   createdAt: string;
@@ -103,7 +104,8 @@ export default function GTMPage() {
       setActions(data.map((row) => ({
         id: row.id,
         inputMessage: row.input_message,
-        draft: (row.output_draft as { text?: string })?.text ?? '',
+        draft: (row.output_draft as { text?: string; image?: string })?.text ?? '',
+        image: (row.output_draft as { text?: string; image?: string })?.image ?? null,
         requiresApproval: row.requires_approval,
         status: row.status,
         createdAt: row.created_at,
@@ -248,7 +250,7 @@ export default function GTMPage() {
           founder_id: FOUNDER_ID,
           agent_type: 'gtm',
           input_message: 'Direct Image Post from computer',
-          output_draft: { text: editedCaption },
+          output_draft: { text: editedCaption, image: previewImage },
           requires_approval: false,
           status: 'posted'
         });
@@ -256,7 +258,7 @@ export default function GTMPage() {
     } else {
       const { error } = await supabase
         .from('agent_actions')
-        .update({ status: 'posted', output_draft: { text: editedCaption } })
+        .update({ status: 'posted', output_draft: { text: editedCaption, image: previewImage } })
         .eq('id', previewCard.id);
       dbError = error;
     }
@@ -529,15 +531,25 @@ export default function GTMPage() {
                       </div>
                     </div>
 
-                    {/* Expanded content */}
+                     {/* Expanded content */}
                     {isExpanded && (
                       <div className="px-5 pb-5 space-y-4 animate-in fade-in duration-150">
+                        {/* Uploaded image (if any was saved) */}
+                        {card.image && (
+                          <div className="rounded-xl overflow-hidden border border-neutral-800">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500 px-4 pt-3 pb-2 flex items-center gap-1.5">
+                              <ImagePlus className="h-3 w-3" /> Post Image
+                            </p>
+                            <img src={card.image} alt="Post" className="w-full max-h-72 object-cover" />
+                          </div>
+                        )}
+
                         {/* Full draft */}
                         <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 p-4">
                           <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500 mb-2 flex items-center gap-1.5">
-                            <FileText className="h-3 w-3" /> Draft Content
+                            <FileText className="h-3 w-3" /> Caption / Draft
                           </p>
-                          <p className="text-xs text-neutral-300 leading-relaxed whitespace-pre-wrap">{card.draft}</p>
+                          <p className="text-xs text-neutral-300 leading-relaxed whitespace-pre-wrap">{card.draft || '(No caption)'}</p>
                         </div>
 
                         {/* Action buttons */}
@@ -618,10 +630,14 @@ export default function GTMPage() {
                       </span>
                     </div>
 
-                    {/* Image Mockup (simple gradient box) */}
-                    <div className="aspect-video w-full rounded-lg bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center border border-neutral-850">
-                      <span className="text-xl font-black text-neutral-700 tracking-wider opacity-60">{founderProfile?.startup_name || 'FOUNDER OS'}</span>
-                    </div>
+                    {/* Image — real uploaded image or gradient placeholder */}
+                    {post.image ? (
+                      <img src={post.image} alt="Post" className="w-full aspect-video object-cover rounded-lg" />
+                    ) : (
+                      <div className="aspect-video w-full rounded-lg bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center border border-neutral-850">
+                        <span className="text-xl font-black text-neutral-700 tracking-wider opacity-60">{founderProfile?.startup_name || 'FOUNDER OS'}</span>
+                      </div>
+                    )}
 
                     {/* Text */}
                     <div className="space-y-1">
