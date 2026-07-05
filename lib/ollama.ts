@@ -37,6 +37,7 @@ async function callOpenRouter(
       max_tokens: maxTokens,
       temperature: 0.2,
     }),
+    signal: AbortSignal.timeout(60000),
   });
 
   if (!response.ok) {
@@ -55,7 +56,7 @@ export async function callOllama(
   userMessage: string,
   maxTokens = 300
 ): Promise<string> {
-  const ollamaUrl = process.env.OLLAMA_URL ?? 'http://localhost:11434/api/chat';
+  const ollamaUrl = process.env.OLLAMA_URL ?? 'http://127.0.0.1:11434/api/chat';
   const model = process.env.OLLAMA_MODEL ?? process.env.NEXT_PUBLIC_OLLAMA_MODEL ?? 'phi3';
 
   try {
@@ -76,7 +77,7 @@ export async function callOllama(
         },
       }),
       // Abort quickly if Ollama isn't running (avoids long hangs on Vercel)
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(60000),
     });
 
     if (!response.ok) {
