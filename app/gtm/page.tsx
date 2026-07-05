@@ -666,28 +666,30 @@ export default function GTMPage() {
 
       {/* ─── Social Preview Modal ─────────────────────────────── */}
       {previewCard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200 overflow-y-auto">
-          <div className="relative flex w-full max-w-xl flex-col rounded-2xl border border-neutral-800 bg-neutral-950 shadow-2xl animate-in zoom-in-95 duration-200 my-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="relative flex w-full max-w-xl flex-col rounded-2xl border border-neutral-800 bg-neutral-950 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh]">
 
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-neutral-800 px-6 py-4">
+            {/* Modal Header — sticky */}
+            <div className="flex items-center justify-between border-b border-neutral-800 px-6 py-4 shrink-0">
               <div>
                 <h3 className="text-sm font-bold text-neutral-200 flex items-center gap-1.5">
                   <Eye className="h-4 w-4 text-purple-400" /> Social Preview & Edit
                 </h3>
-                <p className="text-[10px] text-neutral-500">Edit your image and caption before publishing</p>
+                <p className="text-[10px] text-neutral-500">Click the image to pick a photo from your computer</p>
               </div>
               <button onClick={closePreview} className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-900 hover:text-neutral-200 transition">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="p-6 space-y-5">
+            {/* Scrollable body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
 
               {/* ── Image Upload ── */}
               <div className="space-y-2">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
                   <ImagePlus className="h-3.5 w-3.5" /> Post Image
+                  <span className="text-neutral-700 normal-case font-normal">(click image to change)</span>
                 </p>
                 <input
                   ref={fileInputRef}
@@ -697,22 +699,22 @@ export default function GTMPage() {
                   onChange={handleImageUpload}
                 />
                 {previewImage ? (
-                  <div className="relative group rounded-xl overflow-hidden border border-neutral-800">
+                  <div
+                    className="relative group rounded-xl overflow-hidden border border-neutral-800 cursor-pointer"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
                     <img src={previewImage} alt="Post preview" className="w-full max-h-64 object-cover" />
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-bold gap-2"
-                    >
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-bold gap-2">
                       <ImagePlus className="h-4 w-4" /> Change Image
-                    </button>
+                    </div>
                   </div>
                 ) : (
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full rounded-xl border-2 border-dashed border-neutral-800 hover:border-neutral-600 bg-neutral-900/20 hover:bg-neutral-900/40 transition p-8 flex flex-col items-center gap-2"
+                    className="w-full rounded-xl border-2 border-dashed border-neutral-700 hover:border-purple-500/40 bg-neutral-900/20 hover:bg-purple-500/5 transition p-8 flex flex-col items-center gap-2"
                   >
-                    <ImagePlus className="h-6 w-6 text-neutral-500" />
-                    <p className="text-xs font-semibold text-neutral-400">Click to upload post image</p>
+                    <ImagePlus className="h-8 w-8 text-neutral-500" />
+                    <p className="text-xs font-semibold text-neutral-400">Click to select image from your computer</p>
                     <p className="text-[10px] text-neutral-600">JPG, PNG, GIF — recommended 1080×1080 for Instagram</p>
                   </button>
                 )}
@@ -786,13 +788,23 @@ export default function GTMPage() {
                       </div>
                       <span className="text-xs font-bold text-neutral-200">@{getHandle()}</span>
                     </div>
-                    {previewImage ? (
-                      <img src={previewImage} alt="Post" className="w-full aspect-square object-cover rounded-lg" />
-                    ) : (
-                      <div className="aspect-square w-full rounded-lg bg-gradient-to-br from-indigo-950 via-purple-950 to-neutral-900 flex items-center justify-center border border-neutral-800">
-                        <span className="text-lg font-black text-neutral-700">{founderProfile?.startup_name || 'STARTUP'}</span>
+                    {/* Clickable image area — always opens file picker */}
+                    <div
+                      className="relative group cursor-pointer rounded-lg overflow-hidden"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {previewImage ? (
+                        <img src={previewImage} alt="Post" className="w-full aspect-square object-cover" />
+                      ) : (
+                        <div className="aspect-square w-full rounded-lg bg-gradient-to-br from-indigo-950 via-purple-950 to-neutral-900 flex flex-col items-center justify-center border border-neutral-800 gap-2">
+                          <ImagePlus className="h-8 w-8 text-neutral-600" />
+                          <span className="text-xs font-semibold text-neutral-600">Tap to pick photo</span>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                        <span className="text-white text-xs font-bold flex items-center gap-1.5"><ImagePlus className="h-4 w-4" /> Change Photo</span>
                       </div>
-                    )}
+                    </div>
                     <div className="flex justify-between items-center text-neutral-400 py-0.5">
                       <div className="flex gap-3">
                         <Heart className="h-4 w-4" />
@@ -856,46 +868,43 @@ export default function GTMPage() {
                       <span className="flex items-center gap-1"><Share2 className="h-3 w-3" /> Share</span>
                       <span className="flex items-center gap-1"><SendIcon className="h-3 w-3" /> Send</span>
                     </div>
-                  </div>
+            </div> {/* End of scrollable body */}
+
+            {/* ── Publish actions — sticky at the bottom ── */}
+            <div className="flex flex-col gap-3 border-t border-neutral-800 bg-neutral-950 p-6 rounded-b-2xl shrink-0">
+              <div className="flex justify-between items-center">
+                <span className="rounded border border-blue-500/20 bg-blue-500/10 px-2 py-0.5 text-[9px] font-bold text-blue-400 uppercase tracking-widest">
+                  {previewPlatform === 'Instagram' && previewImage ? 'Real posting enabled' : 'Simulated — No accounts connected'}
+                </span>
+                {publishingState === 'success' && (
+                  <span className="text-xs font-bold text-green-400 flex items-center gap-1.5">
+                    <Heart className="h-3 w-3 fill-red-500 text-red-500 animate-bounce" />
+                    {likesCount} Likes!
+                  </span>
                 )}
               </div>
-
-              {/* ── Publish actions ── */}
-              <div className="flex flex-col gap-3 pt-2 border-t border-neutral-800">
-                <div className="flex justify-between items-center">
-                  <span className="rounded border border-blue-500/20 bg-blue-500/10 px-2 py-0.5 text-[9px] font-bold text-blue-400 uppercase tracking-widest">
-                    {previewPlatform === 'Instagram' && previewImage ? 'Real posting enabled' : 'Simulated — No accounts connected'}
-                  </span>
-                  {publishingState === 'success' && (
-                    <span className="text-xs font-bold text-green-400 flex items-center gap-1.5">
-                      <Heart className="h-3 w-3 fill-red-500 text-red-500 animate-bounce" />
-                      {likesCount} Likes!
-                    </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={closePreview}
+                  disabled={publishingState === 'posting'}
+                  className="flex-1 rounded-xl border border-neutral-800 bg-transparent px-4 py-2.5 text-xs font-bold text-neutral-400 hover:bg-neutral-900 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSimulatedPublish}
+                  disabled={publishingState !== 'idle'}
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-neutral-100 px-5 py-2.5 text-xs font-bold text-neutral-950 hover:bg-neutral-200 transition disabled:opacity-40"
+                >
+                  {publishingState === 'posting' && <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Posting...</>}
+                  {publishingState === 'success' && '✅ Posted!'}
+                  {publishingState === 'idle' && (
+                    <>
+                      <SendIcon className="h-3.5 w-3.5" />
+                      {previewPlatform === 'Instagram' && previewImage ? 'Publish to Instagram' : 'Publish (Simulated)'}
+                    </>
                   )}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={closePreview}
-                    disabled={publishingState === 'posting'}
-                    className="flex-1 rounded-xl border border-neutral-800 bg-transparent px-4 py-2.5 text-xs font-bold text-neutral-400 hover:bg-neutral-900 transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSimulatedPublish}
-                    disabled={publishingState !== 'idle'}
-                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-neutral-100 px-5 py-2.5 text-xs font-bold text-neutral-950 hover:bg-neutral-200 transition disabled:opacity-40"
-                  >
-                    {publishingState === 'posting' && <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Posting...</>}
-                    {publishingState === 'success' && '✅ Posted!'}
-                    {publishingState === 'idle' && (
-                      <>
-                        <SendIcon className="h-3.5 w-3.5" />
-                        {previewPlatform === 'Instagram' && previewImage ? 'Publish to Instagram' : 'Publish (Simulated)'}
-                      </>
-                    )}
-                  </button>
-                </div>
+                </button>
               </div>
             </div>
           </div>
