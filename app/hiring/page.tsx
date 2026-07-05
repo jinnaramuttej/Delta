@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
   Users, Briefcase, UserCheck, Check, X, FileText, Info, HelpCircle,
-  ChevronDown, ChevronUp, CheckCircle, Clock, ExternalLink
+  ChevronDown, ChevronUp, CheckCircle, Clock, ExternalLink, Send, Mail
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -46,6 +46,7 @@ export default function HiringPage() {
 
   // Simulated candidates (populated from past Ollama calls via session state)
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [founderProfile, setFounderProfile] = useState<{ name: string; startup_name: string } | null>(null);
   const [showResults] = useState(false);
   const [resultsTab, setResultsTab] = useState<'results' | 'rec' | 'compare' | 'sources'>('results');
 
@@ -91,6 +92,79 @@ export default function HiringPage() {
 
   useEffect(() => {
     fetchHiringActions();
+
+    async function fetchFounder() {
+      const { data, error } = await supabase
+        .from('founder_profile')
+        .select('name, startup_name')
+        .eq('id', FOUNDER_ID)
+        .single();
+      if (!error && data) {
+        setFounderProfile(data);
+      }
+    }
+    fetchFounder();
+
+    // Populate candidates
+    try {
+      const saved = localStorage.getItem('oni_chat_history');
+      if (saved) {
+        const msgs = JSON.parse(saved);
+        const allCandidates: Candidate[] = [];
+        msgs.forEach((m: any) => {
+          if (m.candidatesList && Array.isArray(m.candidatesList)) {
+            m.candidatesList.forEach((c: Candidate) => {
+              if (c && c.name && !allCandidates.some(existing => existing.name === c.name)) {
+                allCandidates.push(c);
+              }
+            });
+          }
+        });
+        if (allCandidates.length > 0) {
+          setCandidates(allCandidates);
+          return;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    // Fallback candidates
+    setCandidates([
+      {
+        name: "Aarav Sharma",
+        role: "Backend Engineer",
+        experience: "4 years",
+        matchScore: 94,
+        skills: ["Node.js", "Express", "MongoDB", "TypeScript"],
+        availability: "Immediate",
+        currentCompany: "TechSolutions",
+        aiSummary: "Strong backend specialist with extensive experience building REST APIs, managing database clusters, and scaling microservices.",
+        hiringRisk: "Low"
+      },
+      {
+        name: "Priya Patel",
+        role: "Senior Backend Developer",
+        experience: "6 years",
+        matchScore: 89,
+        skills: ["Python", "Django", "PostgreSQL", "AWS"],
+        availability: "2 weeks notice",
+        currentCompany: "ScaleUp Systems",
+        aiSummary: "Senior engineer specializing in cloud architecture, database query optimizations, and secure systems engineering.",
+        hiringRisk: "Low"
+      },
+      {
+        name: "Rohan Das",
+        role: "Fullstack Eng (Backend Focused)",
+        experience: "3 years",
+        matchScore: 82,
+        skills: ["Node.js", "React", "PostgreSQL", "Docker"],
+        availability: "Immediate",
+        currentCompany: "Freelance / Self-employed",
+        aiSummary: "Versatile engineer with clean coding practices, solid system integration knowledge, and robust containerization habits.",
+        hiringRisk: "Medium"
+      }
+    ]);
   }, []);
 
   const handleUpdateStatus = async (id: string, nextStatus: 'approved' | 'rejected') => {
@@ -188,6 +262,29 @@ export default function HiringPage() {
     } catch (err: any) {
       alert(`Failed: ${err.message}`);
     }
+  };
+
+  const handleEmailCandidateDirect = (candidate: Candidate) => {
+    const nameParts = candidate.name.trim().split(/\s+/);
+    const firstName = nameParts[0] ? nameParts[0].toLowerCase() : 'candidate';
+    const lastName = nameParts[nameParts.length - 1] && nameParts.length > 1 ? nameParts[nameParts.length - 1].toLowerCase() : '';
+    const to = lastName ? `${firstName}.${lastName}@example-candidate.com` : `${firstName}@example-candidate.com`;
+    
+    const startupName = founderProfile?.startup_name || 'our startup';
+    const subject = encodeURIComponent(`Opportunity: ${candidate.role} at ${startupName}`);
+    
+    const approvedActions = actions.filter(a => a.status === 'approved' || a.status === 'posted' || a.status === 'contacted');
+    const mostRecentApprovedJD = approvedActions.length > 0 ? approvedActions[0].draft : null;
+    
+    const jdText = mostRecentApprovedJD 
+      ? `Here is the job description:\n\n${mostRecentApprovedJD}`
+      : `We are looking for someone with your background to join our team and help us build the next generation of our product.`;
+      
+    const bodyText = `Hi ${candidate.name},\n\nWe came across your profile and think you'd be a great fit for our ${candidate.role} position at ${startupName}.\n\n${jdText}\n\nLooking forward to connecting.\n\nBest,\n${founderProfile?.name || 'Founder'}`;
+    
+    const body = encodeURIComponent(bodyText);
+    
+    window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
   };
 
   // Derived stats
@@ -556,6 +653,22 @@ export default function HiringPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
+                          {/* Tooltip & Mail Button */}
+                          <div className="relative group">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEmailCandidateDirect(cand);
+                              }}
+                              className="rounded-lg p-2 bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 transition"
+                            >
+                              <Mail className="h-4 w-4" />
+                            </button>
+                            <div className="absolute bottom-full mb-2 hidden group-hover:block left-1/2 -translate-x-1/2 bg-neutral-900 border border-neutral-800 text-[10px] text-neutral-300 px-2 py-1 rounded shadow-lg whitespace-nowrap z-50">
+                              Opens your email client
+                            </div>
+                          </div>
+
                           <div className={`h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold border ${
                             cand.matchScore >= 90
                               ? 'bg-green-500/10 text-green-400 border-green-500/20'
@@ -695,6 +808,19 @@ export default function HiringPage() {
                     </span>
                   </div>
                 </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5 border-b border-neutral-800 pb-5">
+                <button
+                  onClick={() => handleEmailCandidateDirect(selectedCandidate)}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-neutral-100 px-4 py-2.5 text-sm font-bold text-neutral-950 hover:bg-neutral-200 transition"
+                >
+                  <Mail className="h-4 w-4" />
+                  Email Candidate
+                </button>
+                <p className="text-[10px] text-neutral-500 text-center">
+                  Opens your email client
+                </p>
               </div>
 
               <div className="flex border-b border-neutral-800">
