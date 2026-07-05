@@ -40,6 +40,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Intercept simple greetings and friendly chitchat
+    const cleanMsg = message.trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "");
+    const greetings = ['hello', 'hi', 'hey', 'greetings', 'good morning', 'good afternoon', 'good evening', 'yo', 'sup', 'whats up', 'hello there', 'hi there'];
+    if (greetings.includes(cleanMsg)) {
+      return NextResponse.json({
+        agentUsed: 'legal', // fallback label for UI theme colors
+        summary: 'Conversational greeting',
+        draft: `Hello! I'm Oni, your AI orchestrator. I can help you draft legal NDAs/agreements, generate GTM launch posts, manage your team/hiring candidates, or track your startup runway and cash burn. What are we building today?`,
+        requiresApproval: false,
+        status: 'completed'
+      });
+    }
+
     // ── Step 1: Classify the message ──────────────────────────────────────────
     console.log('[orchestrate] Classifying message:', message);
 
