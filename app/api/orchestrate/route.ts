@@ -81,7 +81,48 @@ export async function POST(req: NextRequest) {
     console.log('[orchestrate] Founder profile:', founderProfile ?? 'not found');
 
     // ── Step 3: Forward to the appropriate agent endpoint ─────────────────────
-    const { agent, extractedContext } = classification;
+    let { agent, extractedContext } = classification;
+
+    const lowerMessage = message.toLowerCase();
+    if (
+      lowerMessage.includes('post') ||
+      lowerMessage.includes('tweet') ||
+      lowerMessage.includes('social') ||
+      lowerMessage.includes('launch') ||
+      lowerMessage.includes('marketing') ||
+      lowerMessage.includes('copy') ||
+      lowerMessage.includes('positioning') ||
+      lowerMessage.includes('linkedin') ||
+      lowerMessage.includes('instagram') ||
+      lowerMessage.includes('twitter')
+    ) {
+      agent = 'gtm';
+    } else if (
+      lowerMessage.includes('runway') ||
+      lowerMessage.includes('burn') ||
+      lowerMessage.includes('funding') ||
+      lowerMessage.includes('cash') ||
+      lowerMessage.includes('bank') ||
+      lowerMessage.includes('finance')
+    ) {
+      agent = 'finance';
+    } else if (
+      lowerMessage.includes('hire') ||
+      lowerMessage.includes('hiring') ||
+      lowerMessage.includes('jd') ||
+      lowerMessage.includes('job description') ||
+      lowerMessage.includes('recruiting') ||
+      lowerMessage.includes('candidate')
+    ) {
+      agent = 'hiring';
+    } else if (
+      lowerMessage.includes('nda') ||
+      lowerMessage.includes('legal') ||
+      lowerMessage.includes('agreement') ||
+      lowerMessage.includes('contract')
+    ) {
+      agent = 'legal';
+    }
 
     const agentUrl = `http://127.0.0.1:3000/api/agent/${agent}`;
     console.log('[orchestrate] Calling agent:', agentUrl);
