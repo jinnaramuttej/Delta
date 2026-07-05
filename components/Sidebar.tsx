@@ -84,14 +84,69 @@ export default function Sidebar() {
         })}
       </nav>
 
+      {/* Startup Health Score Widget */}
+      <div className="mt-auto border-t border-neutral-900 pt-5 pb-3 px-2 space-y-3.5">
+        <div className="flex items-center gap-3">
+          {/* Circular SVG Progress */}
+          <div className="relative h-11 w-11 shrink-0 flex items-center justify-center">
+            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+              <path
+                className="text-neutral-900"
+                strokeWidth="3.2"
+                stroke="currentColor"
+                fill="none"
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+              />
+              <path
+                className="text-green-500"
+                strokeWidth="3.2"
+                strokeDasharray="82, 100"
+                strokeLinecap="round"
+                stroke="currentColor"
+                fill="none"
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+              />
+            </svg>
+            <div className="absolute text-[10px] font-bold text-green-400">82</div>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-neutral-300">Health Score</p>
+            <span className="inline-block rounded-full bg-green-500/10 px-2 py-0.5 text-[9px] font-bold text-green-400 border border-green-500/10 uppercase tracking-wider scale-95 origin-left">
+              ✓ Healthy
+            </span>
+          </div>
+        </div>
+
+        {/* Compact Metrics list */}
+        <div className="space-y-2 text-[10px] pr-1">
+          {[
+            { label: 'Product', value: 85, color: 'bg-green-500' },
+            { label: 'Finance', value: 78, color: 'bg-green-500' },
+            { label: 'Team', value: 80, color: 'bg-green-500' },
+            { label: 'Legal', value: 90, color: 'bg-green-500' },
+            { label: 'Marketing', value: 60, color: 'bg-amber-500' },
+          ].map((m) => (
+            <div key={m.label} className="space-y-0.5">
+              <div className="flex justify-between text-neutral-450 font-medium">
+                <span>{m.label}</span>
+                <span>{m.value}%</span>
+              </div>
+              <div className="h-1 w-full bg-neutral-900 rounded-full overflow-hidden">
+                <div className={`h-full ${m.color} rounded-full`} style={{ width: `${m.value}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Profile Section */}
-      <div className="mt-auto border-t border-neutral-800/80 pt-4">
+      <div className="border-t border-neutral-900 pt-4 shrink-0">
         {profile ? (
           <div className="flex items-center gap-3 px-2">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-sm font-semibold text-neutral-300">
               {getInitials(profile.name)}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-neutral-200">{profile.name}</p>
               <p className="truncate text-xs text-neutral-500">{profile.startup_name}</p>
             </div>
