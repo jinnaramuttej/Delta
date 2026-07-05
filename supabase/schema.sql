@@ -31,3 +31,12 @@ CREATE TABLE IF NOT EXISTS finance_snapshots (
   runway_months   numeric     NOT NULL,
   created_at      timestamp   NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS calendar_events (
+  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  founder_id  uuid        REFERENCES founder_profile(id),
+  title       text        NOT NULL,
+  event_date  date        NOT NULL,
+  event_type  text        NOT NULL DEFAULT 'manual',
+  created_at  timestamp   NOT NULL DEFAULT now()
+);
