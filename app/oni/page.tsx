@@ -399,7 +399,7 @@ export default function OniPage() {
   return (
     <div className="flex-1 flex flex-col bg-neutral-950 text-neutral-100 overflow-hidden relative">
       {/* WebGL strands background animation */}
-      <div className="absolute inset-0 z-0 pointer-events-none opacity-40">
+      <div className="absolute inset-0 z-0 pointer-events-none">
         <Strands
           colors={['#FF4242', '#7C3AED', '#06B6D4', '#EAB308']}
           count={5}
