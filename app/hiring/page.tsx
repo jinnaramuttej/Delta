@@ -53,6 +53,12 @@ export default function HiringPage() {
   // Selected candidate profile slide-over panel
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [profileTab, setProfileTab] = useState<'ai' | 'skills'>('ai');
+  const [founderProfile, setFounderProfile] = useState<{ name: string; startup_name: string } | null>(null);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailTo, setEmailTo] = useState('');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [emailCandidateName, setEmailCandidateName] = useState('');
 
   // Expanded draft expand state for Full History section
   const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
@@ -242,13 +248,15 @@ export default function HiringPage() {
   };
 
   const handleEmailCandidate = async (id: string, title: string, draft: string) => {
-    const shortId = id.slice(0, 6);
-    const to = `candidate-${shortId}@example.com`;
-    const subject = encodeURIComponent("Job Opportunity: " + title);
-    const body = encodeURIComponent(draft);
+    const startupName = founderProfile?.startup_name || 'our startup';
+    const subject = `Opportunity: ${title} at ${startupName}`;
+    const bodyText = `Hi [Candidate Name],\n\nWe came across your profile and think you'd be a great fit for our ${title} position at ${startupName}.\n\nHere is the job description:\n\n${draft}\n\nLooking forward to connecting.\n\nBest,\n${founderProfile?.name || 'Founder'}`;
     
-    // Open system mail client
-    window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+    setEmailTo('candidate@example.com');
+    setEmailSubject(subject);
+    setEmailBody(bodyText);
+    setEmailCandidateName('Candidate');
+    setEmailModalOpen(true);
 
     try {
       const { error } = await supabase
@@ -257,10 +265,9 @@ export default function HiringPage() {
         .eq('id', id);
       if (!error) {
         setActions((prev) => prev.map((c) => c.id === id ? { ...c, status: 'contacted' } : c));
-        showToast('Draft opened in your email client');
       }
     } catch (err: any) {
-      alert(`Failed: ${err.message}`);
+      console.error(`Failed to update status: ${err.message}`);
     }
   };
 
@@ -271,7 +278,7 @@ export default function HiringPage() {
     const to = lastName ? `${firstName}.${lastName}@example-candidate.com` : `${firstName}@example-candidate.com`;
     
     const startupName = founderProfile?.startup_name || 'our startup';
-    const subject = encodeURIComponent(`Opportunity: ${candidate.role} at ${startupName}`);
+    const subject = `Opportunity: ${candidate.role} at ${startupName}`;
     
     const approvedActions = actions.filter(a => a.status === 'approved' || a.status === 'posted' || a.status === 'contacted');
     const mostRecentApprovedJD = approvedActions.length > 0 ? approvedActions[0].draft : null;
@@ -282,9 +289,11 @@ export default function HiringPage() {
       
     const bodyText = `Hi ${candidate.name},\n\nWe came across your profile and think you'd be a great fit for our ${candidate.role} position at ${startupName}.\n\n${jdText}\n\nLooking forward to connecting.\n\nBest,\n${founderProfile?.name || 'Founder'}`;
     
-    const body = encodeURIComponent(bodyText);
-    
-    window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+    setEmailTo(to);
+    setEmailSubject(subject);
+    setEmailBody(bodyText);
+    setEmailCandidateName(candidate.name);
+    setEmailModalOpen(true);
   };
 
   // Derived stats
@@ -871,6 +880,87 @@ export default function HiringPage() {
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Contact Candidate Modal (Custom Contact Page Overlay) ── */}
+      {emailModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="relative flex w-full max-w-2xl flex-col rounded-2xl border border-neutral-800 bg-neutral-950 p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-neutral-850 pb-4 mb-5">
+              <div>
+                <h3 className="text-base font-bold text-neutral-100 flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-neutral-400" /> Contact Candidate
+                </h3>
+                <p className="text-xs text-neutral-500 mt-0.5">Send the job description and custom message to {emailCandidateName}</p>
+              </div>
+              <button
+                onClick={() => setEmailModalOpen(false)}
+                className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-900 hover:text-neutral-200 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1.5">Recipient Email</label>
+                <input
+                  type="email"
+                  value={emailTo}
+                  onChange={(e) => setEmailTo(e.target.value)}
+                  className="w-full rounded-xl border border-neutral-850 bg-neutral-900/50 px-4 py-2.5 text-sm text-neutral-200 placeholder-neutral-600 focus:border-neutral-700 focus:outline-none transition"
+                  placeholder="candidate@example.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1.5">Subject</label>
+                <input
+                  type="text"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  className="w-full rounded-xl border border-neutral-850 bg-neutral-900/50 px-4 py-2.5 text-sm text-neutral-200 placeholder-neutral-600 focus:border-neutral-700 focus:outline-none transition"
+                  placeholder="Subject of the email"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1.5">Message Body</label>
+                <textarea
+                  value={emailBody}
+                  onChange={(e) => setEmailBody(e.target.value)}
+                  rows={12}
+                  className="w-full rounded-xl border border-neutral-850 bg-neutral-900/50 px-4 py-2.5 text-xs text-neutral-300 placeholder-neutral-600 focus:border-neutral-700 focus:outline-none transition resize-y font-sans leading-relaxed"
+                  placeholder="Write your message here..."
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between mt-6 pt-4 border-t border-neutral-850">
+              <span className="text-[10px] text-neutral-500 max-w-[60%] leading-normal">
+                Clicking send will launch your configured system mail client with the drafted details.
+              </span>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setEmailModalOpen(false)}
+                  className="rounded-xl border border-neutral-850 bg-transparent px-4 py-2 text-xs font-semibold text-neutral-400 hover:bg-neutral-900 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    window.location.href = `mailto:${emailTo}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+                    setEmailModalOpen(false);
+                    showToast(`📧 Draft loaded in your mail client for ${emailTo}`);
+                  }}
+                  className="flex items-center gap-1.5 rounded-xl bg-neutral-100 px-4 py-2 text-xs font-bold text-neutral-950 hover:bg-neutral-200 transition"
+                >
+                  <Send className="h-3.5 w-3.5" /> Send Email
+                </button>
               </div>
             </div>
           </div>
