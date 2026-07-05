@@ -906,11 +906,9 @@ export default function GTMPage() {
                     </>
                   )}
                 </button>
-              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 }
