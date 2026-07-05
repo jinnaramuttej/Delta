@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
   Megaphone, FileText, Check, X, ChevronDown, ChevronUp,
-  Sparkles, RefreshCw, Send, Instagram, Twitter, Linkedin,
+  Sparkles, RefreshCw, Send, Camera, Bird, Link2,
   MessageSquare, Globe, Target, Zap, BarChart2, Share2
 } from 'lucide-react';
 
@@ -50,9 +50,9 @@ const CONTENT_TYPES = [
 ];
 
 const PLATFORMS = [
-  { id: 'instagram', label: 'Instagram', icon: Instagram },
-  { id: 'twitter',   label: 'X / Twitter', icon: Twitter },
-  { id: 'linkedin',  label: 'LinkedIn', icon: Linkedin },
+  { id: 'instagram', label: 'Instagram', icon: Camera },
+  { id: 'twitter',   label: 'X / Twitter', icon: Bird },
+  { id: 'linkedin',  label: 'LinkedIn', icon: Link2 },
 ];
 
 type ActionCard = {
