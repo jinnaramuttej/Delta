@@ -16,6 +16,14 @@ type FounderProfile = {
 export default function Sidebar() {
   const pathname = usePathname();
   const [profile, setProfile] = useState<FounderProfile | null>(null);
+  const [scores, setScores] = useState({
+    overall: 82,
+    product: 85,
+    finance: 78,
+    team: 80,
+    legal: 90,
+    marketing: 60
+  });
 
   useEffect(() => {
     async function fetchProfile() {
@@ -28,8 +36,79 @@ export default function Sidebar() {
         setProfile(data as FounderProfile);
       }
     }
+
+    async function fetchHealthMetrics() {
+      // 1. Fetch runway to calculate Finance score
+      const { data: financeData } = await supabase
+        .from('finance_snapshots')
+        .select('runway_months')
+        .eq('founder_id', FOUNDER_ID)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      let financeScore = 75; // baseline
+      if (financeData && financeData.length > 0) {
+        const runway = financeData[0].runway_months;
+        if (runway >= 18) financeScore = 95;
+        else if (runway >= 12) financeScore = 85;
+        else if (runway >= 6) financeScore = 65;
+        else financeScore = 40;
+      }
+
+      // 2. Fetch agent actions to calculate GTM (Marketing), Hiring (Team), and Legal scores
+      const { data: actionsData } = await supabase
+        .from('agent_actions')
+        .select('agent_type, status')
+        .eq('founder_id', FOUNDER_ID);
+
+      let productCount = 0;
+      let productApproved = 0;
+      let legalCount = 0;
+      let legalApproved = 0;
+      let hiringCount = 0;
+      let hiringApproved = 0;
+      let gtmCount = 0;
+      let gtmPosted = 0;
+
+      if (actionsData) {
+        actionsData.forEach(act => {
+          if (act.agent_type === 'legal') {
+            legalCount++;
+            if (act.status === 'approved' || act.status === 'posted') legalApproved++;
+          } else if (act.agent_type === 'hiring') {
+            hiringCount++;
+            if (act.status === 'approved' || act.status === 'posted') hiringApproved++;
+          } else if (act.agent_type === 'gtm') {
+            gtmCount++;
+            if (act.status === 'posted') gtmPosted++;
+          } else {
+            productCount++;
+            if (act.status === 'approved' || act.status === 'posted') productApproved++;
+          }
+        });
+      }
+
+      // Calculate scores dynamically (ensure a baseline of 60 if no drafts exist)
+      const legalScore = legalCount > 0 ? Math.round((legalApproved / legalCount) * 40 + 60) : 90;
+      const teamScore = hiringCount > 0 ? Math.round((hiringApproved / hiringCount) * 40 + 60) : 80;
+      const marketingScore = gtmCount > 0 ? Math.round((gtmPosted / gtmCount) * 50 + 50) : 60;
+      const productScore = productCount > 0 ? Math.round((productApproved / productCount) * 30 + 70) : 85;
+
+      const overallScore = Math.round((productScore + financeScore + teamScore + legalScore + marketingScore) / 5);
+
+      setScores({
+        overall: overallScore,
+        product: productScore,
+        finance: financeScore,
+        team: teamScore,
+        legal: legalScore,
+        marketing: marketingScore
+      });
+    }
+
     fetchProfile();
-  }, []);
+    fetchHealthMetrics();
+  }, [pathname]);
 
   const navItems = [
     { label: 'Oni', href: '/oni', icon: Sparkles },
@@ -100,31 +179,41 @@ export default function Sidebar() {
               <path
                 className="text-green-500"
                 strokeWidth="3.2"
-                strokeDasharray="82, 100"
+                strokeDasharray={`${scores.overall}, 100`}
                 strokeLinecap="round"
                 stroke="currentColor"
                 fill="none"
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
               />
             </svg>
-            <div className="absolute text-[10px] font-bold text-green-400">82</div>
+            <div className="absolute text-[10px] font-bold text-green-400">{scores.overall}</div>
           </div>
           <div>
             <p className="text-xs font-semibold text-neutral-300">Health Score</p>
-            <span className="inline-block rounded-full bg-green-500/10 px-2 py-0.5 text-[9px] font-bold text-green-400 border border-green-500/10 uppercase tracking-wider scale-95 origin-left">
-              ✓ Healthy
-            </span>
+            {scores.overall >= 80 ? (
+              <span className="inline-block rounded-full bg-green-500/10 px-2 py-0.5 text-[9px] font-bold text-green-400 border border-green-500/10 uppercase tracking-wider scale-95 origin-left">
+                ✓ Healthy
+              </span>
+            ) : scores.overall >= 60 ? (
+              <span className="inline-block rounded-full bg-amber-500/10 px-2 py-0.5 text-[9px] font-bold text-amber-400 border border-amber-500/10 uppercase tracking-wider scale-95 origin-left">
+                ⚠ At Risk
+              </span>
+            ) : (
+              <span className="inline-block rounded-full bg-red-500/10 px-2 py-0.5 text-[9px] font-bold text-red-400 border border-red-500/10 uppercase tracking-wider scale-95 origin-left">
+                ✕ Critical
+              </span>
+            )}
           </div>
         </div>
 
         {/* Compact Metrics list */}
         <div className="space-y-2 text-[10px] pr-1">
           {[
-            { label: 'Product', value: 85, color: 'bg-green-500' },
-            { label: 'Finance', value: 78, color: 'bg-green-500' },
-            { label: 'Team', value: 80, color: 'bg-green-500' },
-            { label: 'Legal', value: 90, color: 'bg-green-500' },
-            { label: 'Marketing', value: 60, color: 'bg-amber-500' },
+            { label: 'Product', value: scores.product, color: scores.product >= 80 ? 'bg-green-500' : scores.product >= 60 ? 'bg-amber-500' : 'bg-red-500' },
+            { label: 'Finance', value: scores.finance, color: scores.finance >= 80 ? 'bg-green-500' : scores.finance >= 60 ? 'bg-amber-500' : 'bg-red-500' },
+            { label: 'Team', value: scores.team, color: scores.team >= 80 ? 'bg-green-500' : scores.team >= 60 ? 'bg-amber-500' : 'bg-red-500' },
+            { label: 'Legal', value: scores.legal, color: scores.legal >= 80 ? 'bg-green-500' : scores.legal >= 60 ? 'bg-amber-500' : 'bg-red-500' },
+            { label: 'Marketing', value: scores.marketing, color: scores.marketing >= 80 ? 'bg-green-500' : scores.marketing >= 60 ? 'bg-amber-500' : 'bg-red-500' },
           ].map((m) => (
             <div key={m.label} className="space-y-0.5">
               <div className="flex justify-between text-neutral-450 font-medium">
