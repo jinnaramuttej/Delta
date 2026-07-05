@@ -866,8 +866,9 @@ export default function GTMPage() {
                       <span className="flex items-center gap-1"><Heart className="h-3 w-3" /> Like</span>
                       <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3" /> Comment</span>
                       <span className="flex items-center gap-1"><Share2 className="h-3 w-3" /> Share</span>
-                      <span className="flex items-center gap-1"><SendIcon className="h-3 w-3" /> Send</span>
                     </div>
+                  </div>
+                )}
             </div> {/* End of scrollable body */}
 
             {/* ── Publish actions — sticky at the bottom ── */}
