@@ -158,77 +158,96 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="space-y-8">
-            {/* Real Stats Activity Cards Grid with Graphs */}
-            <div className="grid gap-4 sm:grid-cols-3">
+            {/* Agent Project Cards */}
+            <div className="grid gap-5 sm:grid-cols-3">
               {/* Hiring Card */}
-              <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5 flex flex-col justify-between">
-                <div>
-                  <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Hiring Activity</p>
-                  <p className="mt-2 text-2xl font-bold text-neutral-100">{stats.hiring.drafted} Roles</p>
-                  <p className="mt-1 text-xs text-neutral-500">{stats.hiring.approved} approved</p>
+              <Link href="/hiring" className="group block rounded-2xl border border-neutral-800 bg-neutral-900/20 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all duration-300 overflow-hidden">
+                <div className="h-1.5 w-full bg-gradient-to-r from-blue-600 to-blue-400 opacity-80" />
+                <div className="p-6 flex flex-col gap-4">
+                  <div className="flex items-start justify-between">
+                    <div className="h-10 w-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-lg">🧑‍💼</div>
+                    <span className="text-[10px] text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider">Hiring</span>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-neutral-100 group-hover:text-blue-300 transition">Talent Pipeline</h3>
+                    <p className="text-xs text-neutral-500 mt-1 leading-relaxed">AI-drafted JDs, candidate matching, and approval workflows for your next hire.</p>
+                  </div>
+                  <div className="flex items-center gap-4 pt-2 border-t border-neutral-800">
+                    <div>
+                      <p className="text-xl font-bold text-neutral-100">{stats.hiring.drafted}</p>
+                      <p className="text-[10px] text-neutral-500 uppercase tracking-wider">Drafted</p>
+                    </div>
+                    <div className="h-8 w-px bg-neutral-800" />
+                    <div>
+                      <p className="text-xl font-bold text-blue-400">{stats.hiring.approved}</p>
+                      <p className="text-[10px] text-neutral-500 uppercase tracking-wider">Approved</p>
+                    </div>
+                    <div className="ml-auto text-neutral-600 group-hover:text-blue-400 transition text-lg">→</div>
+                  </div>
                 </div>
-                {/* Visual Pipeline Bar Chart (Hiring Stats) */}
-                <div className="mt-4 flex gap-1 items-end h-6">
-                  <div className="w-full bg-blue-500/10 rounded-t h-1/3" />
-                  <div className="w-full bg-blue-500/20 rounded-t h-1/2" />
-                  <div className="w-full bg-blue-500/40 rounded-t h-2/3" />
-                  <div className="w-full bg-blue-500 rounded-t h-[90%]" />
-                </div>
-              </div>
+              </Link>
 
               {/* Legal Card */}
-              <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5 flex flex-col justify-between">
-                <div>
-                  <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Legal Activity</p>
-                  <p className="mt-2 text-2xl font-bold text-neutral-100">{stats.legal.drafted} Drafts</p>
-                  <p className="mt-1 text-xs text-neutral-500">{stats.legal.approved} verified</p>
-                </div>
-                {/* Visual Pipeline Bar Chart (Legal Stats) */}
-                <div className="mt-4 flex gap-1 items-end h-6">
-                  <div className="w-full bg-amber-500/10 rounded-t h-1/4" />
-                  <div className="w-full bg-amber-500/20 rounded-t h-2/4" />
-                  <div className="w-full bg-amber-500/30 rounded-t h-1/3" />
-                  <div className="w-full bg-amber-500 rounded-t h-[80%]" />
-                </div>
-              </div>
-
-              {/* Finance snapshots card */}
-              <div className="rounded-xl border border-neutral-800 bg-neutral-900/10 p-5 flex flex-col justify-between min-h-[135px]">
-                <div>
-                  <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Burn & Runway</p>
-                  {financeSnapshot ? (
-                    <>
-                      <p className="mt-2 text-2xl font-bold text-neutral-100">
-                        {financeSnapshot.runway_months.toFixed(1)}m runway
-                      </p>
-                      <p className="mt-1 text-xs text-neutral-500">
-                        Burn: ${financeSnapshot.monthly_burn.toLocaleString()}/mo
-                      </p>
-                      {/* SVG Area Sparkline */}
-                      <div className="mt-4 h-6 w-full">
-                        <svg className="w-full h-full" viewBox="0 0 100 10" preserveAspectRatio="none">
-                          <defs>
-                            <linearGradient id="burnGrad" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#22c55e" stopOpacity="0.4" />
-                              <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
-                            </linearGradient>
-                          </defs>
-                          <path d="M0,10 L0,8 L20,6 L40,9 L60,4 L80,5 L100,2 L100,10 Z" fill="url(#burnGrad)" />
-                          <path d="M0,8 L20,6 L40,9 L60,4 L80,5 L100,2" fill="none" stroke="#22c55e" strokeWidth="0.8" />
-                        </svg>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="mt-2">
-                      <p className="text-xs text-neutral-400">No data yet.</p>
-                      <Link href="/finance" className="mt-1 inline-block text-[11px] text-green-400 hover:underline">
-                        Log your first snapshot →
-                      </Link>
+              <Link href="/legal" className="group block rounded-2xl border border-neutral-800 bg-neutral-900/20 hover:border-amber-500/30 hover:bg-amber-500/5 transition-all duration-300 overflow-hidden">
+                <div className="h-1.5 w-full bg-gradient-to-r from-amber-600 to-amber-400 opacity-80" />
+                <div className="p-6 flex flex-col gap-4">
+                  <div className="flex items-start justify-between">
+                    <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-lg">⚖️</div>
+                    <span className="text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider">Legal</span>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-neutral-100 group-hover:text-amber-300 transition">Legal Drafts</h3>
+                    <p className="text-xs text-neutral-500 mt-1 leading-relaxed">AI-generated agreements, NDAs, and compliance documents — reviewed by your team.</p>
+                  </div>
+                  <div className="flex items-center gap-4 pt-2 border-t border-neutral-800">
+                    <div>
+                      <p className="text-xl font-bold text-neutral-100">{stats.legal.drafted}</p>
+                      <p className="text-[10px] text-neutral-500 uppercase tracking-wider">Drafted</p>
                     </div>
-                  )}
+                    <div className="h-8 w-px bg-neutral-800" />
+                    <div>
+                      <p className="text-xl font-bold text-amber-400">{stats.legal.approved}</p>
+                      <p className="text-[10px] text-neutral-500 uppercase tracking-wider">Approved</p>
+                    </div>
+                    <div className="ml-auto text-neutral-600 group-hover:text-amber-400 transition text-lg">→</div>
+                  </div>
                 </div>
-              </div>
+              </Link>
+
+              {/* Finance Card */}
+              <Link href="/finance" className="group block rounded-2xl border border-neutral-800 bg-neutral-900/20 hover:border-green-500/30 hover:bg-green-500/5 transition-all duration-300 overflow-hidden">
+                <div className="h-1.5 w-full bg-gradient-to-r from-green-600 to-emerald-400 opacity-80" />
+                <div className="p-6 flex flex-col gap-4">
+                  <div className="flex items-start justify-between">
+                    <div className="h-10 w-10 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center text-lg">💰</div>
+                    <span className="text-[10px] text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider">Finance</span>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-neutral-100 group-hover:text-green-300 transition">Burn & Runway</h3>
+                    <p className="text-xs text-neutral-500 mt-1 leading-relaxed">Track cash balance, burn rate, and runway from your logged financial snapshots.</p>
+                  </div>
+                  <div className="flex items-center gap-4 pt-2 border-t border-neutral-800">
+                    {financeSnapshot ? (
+                      <>
+                        <div>
+                          <p className="text-xl font-bold text-neutral-100">{financeSnapshot.runway_months.toFixed(1)}<span className="text-sm font-normal text-neutral-400 ml-0.5">mo</span></p>
+                          <p className="text-[10px] text-neutral-500 uppercase tracking-wider">Runway</p>
+                        </div>
+                        <div className="h-8 w-px bg-neutral-800" />
+                        <div>
+                          <p className="text-xl font-bold text-green-400">${financeSnapshot.monthly_burn.toLocaleString()}</p>
+                          <p className="text-[10px] text-neutral-500 uppercase tracking-wider">Burn/mo</p>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-xs text-neutral-500">No snapshot logged yet.</p>
+                    )}
+                    <div className="ml-auto text-neutral-600 group-hover:text-green-400 transition text-lg">→</div>
+                  </div>
+                </div>
+              </Link>
             </div>
+
 
             {/* Today's Activity Section */}
             <section>
