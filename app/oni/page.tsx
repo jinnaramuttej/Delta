@@ -410,7 +410,7 @@ export default function OniPage() {
         />
       </div>
       {/* Dark overlay for readability */}
-      <div className="absolute inset-0 bg-neutral-950/75 backdrop-blur-[1px] pointer-events-none z-0" />
+      <div className="absolute inset-0 bg-neutral-950/40 backdrop-blur-[1px] pointer-events-none z-0" />
       
       {/* Clear chat button — only visible when history exists */}
       {hasStarted && messages.length > 0 && (
