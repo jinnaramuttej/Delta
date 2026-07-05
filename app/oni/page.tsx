@@ -451,7 +451,7 @@ export default function OniPage() {
                         {msg.text}
                       </p>
 
-                      {msg.requiresApproval && (
+                      {msg.requiresApproval && !msg.text.includes("How can I assist you") && !msg.text.startsWith("Hello!") && (
                         <div className="flex gap-2 pt-2">
                           {msg.status === 'pending' ? (
                             <>
