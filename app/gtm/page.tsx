@@ -872,7 +872,12 @@ export default function GTMPage() {
                   >
                     {publishingState === 'posting' && <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Posting...</>}
                     {publishingState === 'success' && '✅ Posted!'}
-                    {publishingState === 'idle' && <><SendIcon className="h-3.5 w-3.5" /> Publish (Simulated)</>}
+                    {publishingState === 'idle' && (
+                      <>
+                        <SendIcon className="h-3.5 w-3.5" />
+                        {previewPlatform === 'Instagram' && previewImage ? 'Publish to Instagram' : 'Publish (Simulated)'}
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
