@@ -237,13 +237,31 @@ export default function GTMPage() {
       return;
     }
 
-    // Save edited caption back to Supabase
-    const { error } = await supabase
-      .from('agent_actions')
-      .update({ status: 'posted', output_draft: { text: editedCaption } })
-      .eq('id', previewCard.id);
+    // Save edited caption back to Supabase (Insert if direct custom post, otherwise Update)
+    const isDirectPost = previewCard.id.startsWith('new-direct-post');
+    let dbError;
 
-    if (!error) {
+    if (isDirectPost) {
+      const { error } = await supabase
+        .from('agent_actions')
+        .insert({
+          founder_id: FOUNDER_ID,
+          agent_type: 'gtm',
+          input_message: 'Direct Image Post from computer',
+          output_draft: { text: editedCaption },
+          requires_approval: false,
+          status: 'posted'
+        });
+      dbError = error;
+    } else {
+      const { error } = await supabase
+        .from('agent_actions')
+        .update({ status: 'posted', output_draft: { text: editedCaption } })
+        .eq('id', previewCard.id);
+      dbError = error;
+    }
+
+    if (!dbError) {
       setPublishingState('success');
       const targetLikes = Math.floor(Math.random() * 14) + 12;
       let current = 0;
@@ -315,6 +333,19 @@ export default function GTMPage() {
             </h1>
             <p className="text-xs text-neutral-500 mt-0.5 font-medium">AI-drafted marketing copy, launch posts, and growth content.</p>
           </div>
+          <button
+            onClick={() => openPreview({
+              id: 'new-direct-post-' + Date.now(),
+              inputMessage: 'Direct post',
+              draft: '',
+              requiresApproval: false,
+              status: 'pending',
+              createdAt: new Date().toISOString()
+            })}
+            className="flex items-center gap-1.5 rounded-xl bg-purple-650 hover:bg-purple-700 px-4 py-2.5 text-xs font-bold text-neutral-100 transition shrink-0 shadow-lg border border-purple-500/20"
+          >
+            <ImagePlus className="h-4 w-4" /> Create Custom Post
+          </button>
         </div>
       </header>
 
