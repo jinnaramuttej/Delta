@@ -262,21 +262,15 @@ export default function OniPage() {
         (async () => {
           let candidatesList: Candidate[] = [];
           try {
-            const modelName = 'qwen3:8b';
-            const ollamaRes = await fetch('http://127.0.0.1:11434/api/generate', {
+            const apiRes = await fetch('/api/generate-candidates', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                model: modelName,
-                prompt: `/no_think Generate exactly 3 realistic but clearly fictional example candidate profiles for this hiring role: "${queryText}". Return ONLY a raw JSON array matching this typescript shape: Array<{ name: string, role: string, experience: string, matchScore: number, skills: string[], availability: string, currentCompany: string, aiSummary: string, hiringRisk: 'Low' | 'Medium' | 'High' }>. Do not include markdown code block formatting or explanation, just the raw JSON.`,
-                stream: false,
-                options: { temperature: 0.1, num_predict: 800 },
-              }),
+              body: JSON.stringify({ queryText }),
               signal: AbortSignal.timeout(60000)
             });
 
-            if (ollamaRes.ok) {
-              const rawText = (await ollamaRes.json()).response;
+            if (apiRes.ok) {
+              const rawText = (await apiRes.json()).response;
 
               // Step 1: Strip all markdown fence variants
               const stripped = rawText
