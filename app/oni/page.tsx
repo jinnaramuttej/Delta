@@ -375,18 +375,24 @@ export default function OniPage() {
   const handleUpdateStatus = async (messageId: string, actionId: string, nextStatus: 'approved' | 'rejected') => {
     const targetId = actionId || messageId;
     try {
-      const { error } = await supabase
-        .from('agent_actions')
-        .update({ status: nextStatus, approved: nextStatus === 'approved' })
-        .eq('id', targetId);
+      // Optimistic update
+      setMessages((prev) =>
+        prev.map((m) => (m.id === messageId || m.actionId === targetId ? { ...m, status: nextStatus } : m))
+      );
 
-      if (!error) {
-        setMessages((prev) =>
-          prev.map((m) => (m.id === messageId || m.actionId === targetId ? { ...m, status: nextStatus } : m))
-        );
+      // Only attempt db update if targetId looks like a UUID
+      if (targetId.length === 36 && targetId.includes('-')) {
+        const { error } = await supabase
+          .from('agent_actions')
+          .update({ status: nextStatus, approved: nextStatus === 'approved' })
+          .eq('id', targetId);
+
+        if (error) {
+          console.warn('Failed to update agent action in DB:', error.message);
+        }
       }
     } catch (err: any) {
-      alert(`Action update failed: ${err.message}`);
+      console.error(`Action update failed: ${err.message}`);
     }
   };
 
