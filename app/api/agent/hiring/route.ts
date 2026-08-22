@@ -52,24 +52,6 @@ export async function POST(req: NextRequest) {
 
     console.log('[hiring] Ollama draft length:', draft.length, 'chars');
 
-    // ── Step 3: Insert into agent_actions ────────────────────────────────────
-    console.log('[hiring] Inserting agent_actions row for founderId:', founderId);
-
-    const { error: dbError } = await supabase.from('agent_actions').insert({
-      founder_id:        founderId,
-      agent_type:        'hiring',
-      input_message:     message,
-      output_draft:      { text: draft },
-      requires_approval: true,
-      status:            'pending',
-    });
-
-    if (dbError) {
-      console.warn('[hiring] Supabase insert error (non-fatal):', dbError.message);
-    } else {
-      console.log('[hiring] agent_actions row inserted successfully');
-    }
-
     // ── Step 4: Return API contract response ──────────────────────────────────
     const response: AgentResponse = {
       agentUsed:        'hiring',

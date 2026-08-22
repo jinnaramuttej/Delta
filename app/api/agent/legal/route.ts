@@ -47,22 +47,6 @@ export async function POST(req: NextRequest) {
     const draft = await callOllama(systemPrompt, userMessage, 300);
 
     console.log('[legal] Ollama draft length:', draft.length, 'chars');
-    console.log('[legal] Inserting agent_actions row for founderId:', founderId);
-
-    const { error: dbError } = await supabase.from('agent_actions').insert({
-      founder_id:        founderId,
-      agent_type:        'legal',
-      input_message:     message,
-      output_draft:      { text: draft },
-      requires_approval: true,
-      status:            'pending',
-    });
-
-    if (dbError) {
-      console.warn('[legal] Supabase insert error (non-fatal):', dbError.message);
-    } else {
-      console.log('[legal] agent_actions row inserted successfully');
-    }
 
     const response: AgentResponse = {
       agentUsed:        'legal',
