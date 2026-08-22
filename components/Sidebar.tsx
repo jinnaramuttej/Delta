@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { LayoutDashboard, Users, DollarSign, Scale, Megaphone, Sparkles, BarChart3, CalendarDays } from 'lucide-react';
+import { LayoutDashboard, Users, DollarSign, Scale, Megaphone, Sparkles, CalendarDays } from 'lucide-react';
 
 const FOUNDER_ID = '8bbb8137-73b7-4e07-b154-6d0b8034532f';
 
@@ -113,7 +113,6 @@ export default function Sidebar() {
   const navItems = [
     { label: 'Oni', href: '/oni', icon: Sparkles },
     { label: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { label: 'Analytics', href: '/analytics', icon: BarChart3 },
     { label: 'Calendar', href: '/calendar', icon: CalendarDays },
     { label: 'Hiring', href: '/hiring', icon: Users },
     { label: 'Finance', href: '/finance', icon: DollarSign },
