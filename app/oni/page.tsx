@@ -226,24 +226,21 @@ export default function OniPage() {
       const data = await res.json();
       
       // Insert the action in Supabase from the client side
-      let actionId = '';
-      const { data: insertedData, error: insertError } = await supabase
+      let actionId = crypto.randomUUID();
+      const { error: insertError } = await supabase
         .from('agent_actions')
         .insert({
+          id: actionId,
           founder_id: FOUNDER_ID,
           agent_type: data.agentUsed || 'hiring',
           input_message: queryText,
           output_draft: { text: data.draft || data.summary },
           requires_approval: data.requiresApproval,
           status: 'pending'
-        })
-        .select('id')
-        .single();
+        });
 
-      if (!insertError && insertedData) {
-        actionId = insertedData.id;
-      } else if (insertError) {
-        console.error('[oni] Failed to insert agent action on client:', insertError);
+      if (insertError) {
+        console.error('[oni] Failed to insert agent action on client:', insertError.message || insertError);
       }
 
       const oniMsgId = data.id || Math.random().toString();
